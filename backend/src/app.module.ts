@@ -11,6 +11,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { AlumnosModule } from './modules/alumnos/alumnos.module';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
+import { AulasModule } from './modules/aulas/aulas.module';
+import { HorariosModule } from './modules/horarios/horarios.module';
+import { BiometriaModule } from './modules/biometria/biometria.module';
 
 @Module({
   imports: [
@@ -57,6 +60,9 @@ import { AsistenciaModule } from './modules/asistencia/asistencia.module';
     UsuariosModule,
     AlumnosModule,
     AsistenciaModule,
+    AulasModule,
+    HorariosModule,
+    BiometriaModule,
   ],
   controllers: [AppController],
   providers: [

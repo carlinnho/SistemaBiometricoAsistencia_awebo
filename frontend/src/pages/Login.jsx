@@ -5,9 +5,9 @@ import { useAuth } from "../contexts/AuthContext";
 import { AuthService } from "../services/auth.service";
 
 const ROLE_HOME = {
-  administrador: "/app/admin",
-  docente: "/app/docente",
-  padre: "/app/padre",
+  administrador: "/app/docentes",
+  docente: "/app/aula",
+  padre: "/app/asistencia",
 };
 
 export default function Login() {
@@ -75,7 +75,7 @@ export default function Login() {
 
         {error && (
           <div className="mb-5 flex items-center gap-3 rounded-lg border px-4 py-3 border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+            <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}

@@ -1,25 +1,23 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/layout/ProtectedRoute";
+import { AppLayout } from "./components/layout/AppLayout";
+
+// Importación de Páginas
 import Login from "./pages/Login";
+import Docentes from "./pages/Docentes";
+import Padres from "./pages/Padres";
+import Aulas from "./pages/Aulas";
+import Horarios from "./pages/Horarios";
+import Alumnos from "./pages/Alumnos";
+
+// Nuevas Páginas por Rol
+import DocenteAula from "./pages/DocenteAula";
+import DocenteAsistencia from "./pages/DocenteAsistencia";
+import PadreDashboard from "./pages/PadreDashboard";
 
 const queryClient = new QueryClient();
-
-// Componente temporal para probar que entramos
-const DashboardDummy = ({ title }) => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold">Bienvenido al Panel de {title}</h1>
-    <button
-      onClick={() => {
-        localStorage.clear();
-        window.location.href = "/login";
-      }}
-      className="mt-4 text-red-500 underline"
-    >
-      Cerrar Sesión (Test)
-    </button>
-  </div>
-);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -28,20 +26,46 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
 
-          {/* Rutas temporales para probar la redirección tras el login */}
-          <Route
-            path="/app/admin"
-            element={<DashboardDummy title="Administrador" />}
-          />
-          <Route
-            path="/app/docente"
-            element={<DashboardDummy title="Docente" />}
-          />
-          <Route
-            path="/app/padre"
-            element={<DashboardDummy title="Padres" />}
-          />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<AppLayout />}>
+              {/* ── RUTAS DE ADMINISTRADOR ── */}
+              <Route
+                element={<ProtectedRoute allowedRoles={["administrador"]} />}
+              >
+                <Route path="/app/docentes" element={<Docentes />} />
+                <Route path="/app/padres" element={<Padres />} />
+                <Route path="/app/aulas" element={<Aulas />} />
+                <Route path="/app/horarios" element={<Horarios />} />
+                <Route path="/app/alumnos" element={<Alumnos />} />
+              </Route>
 
+              {/* ── RUTAS DE DOCENTE ── */}
+              <Route element={<ProtectedRoute allowedRoles={["docente"]} />}>
+                <Route path="/app/mi-aula" element={<DocenteAula />} />
+                <Route
+                  path="/app/tomar-asistencia"
+                  element={<DocenteAsistencia />}
+                />
+              </Route>
+
+              {/* ── RUTAS DE PADRE ── */}
+              <Route element={<ProtectedRoute allowedRoles={["padre"]} />}>
+                <Route path="/app/mis-hijos" element={<PadreDashboard />} />
+              </Route>
+
+              {/* ── RUTA FALLBACK (404 Interno) ── */}
+              <Route
+                path="/app/*"
+                element={
+                  <div className="p-8 text-center text-gray-500">
+                    Página en construcción o no encontrada.
+                  </div>
+                }
+              />
+            </Route>
+          </Route>
+
+          {/* Redirección por defecto */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
