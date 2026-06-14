@@ -41,7 +41,17 @@ export class AulasService {
 
   async update(id_aula: number, updateAulaDto: UpdateAulaDto): Promise<Aula> {
     const aula = await this.findOne(id_aula);
-    await this.aulaRepo.save({ ...aula, ...updateAulaDto });
+
+    // Assign the DTO fields directly onto the entity.
+    // IMPORTANT: We must DELETE the loaded relation property so that TypeORM
+    // uses the raw `id_docente` FK column instead of re-deriving it from
+    // the stale relation object.
+    Object.assign(aula, updateAulaDto);
+    if (updateAulaDto.id_docente !== undefined) {
+      delete (aula as any).docente;
+    }
+
+    await this.aulaRepo.save(aula);
     return this.findOne(id_aula);
   }
 

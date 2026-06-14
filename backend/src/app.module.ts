@@ -14,6 +14,7 @@ import { AsistenciaModule } from './modules/asistencia/asistencia.module';
 import { AulasModule } from './modules/aulas/aulas.module';
 import { HorariosModule } from './modules/horarios/horarios.module';
 import { BiometriaModule } from './modules/biometria/biometria.module';
+import { HorariosUsuarioModule } from './modules/horarios-usuario/horarios-usuario.module';
 
 @Module({
   imports: [
@@ -51,7 +52,7 @@ import { BiometriaModule } from './modules/biometria/biometria.module';
         autoLoadEntities: true,
         // En tu proyecto anterior lo tenías en true. Mantengámoslo así por ahora,
         // pero recuerda que en producción debe ser false.
-        synchronize: true,
+        synchronize: false,
       }),
     }),
 
@@ -63,6 +64,7 @@ import { BiometriaModule } from './modules/biometria/biometria.module';
     AulasModule,
     HorariosModule,
     BiometriaModule,
+    HorariosUsuarioModule,
   ],
   controllers: [AppController],
   providers: [

@@ -13,6 +13,8 @@ import {
   Camera,
   ScanFace,
   Check,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { AlumnosService } from "../services/alumnos.service";
@@ -26,7 +28,7 @@ function Toast({ toast, onClose }) {
   const isError = toast.type === "error";
   return createPortal(
     <div
-      className={`fixed bottom-5 right-5 z-200 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${isError ? "bg-red-50 border-red-200 text-red-800" : "bg-green-50 border-green-200 text-green-800"}`}
+      className={`fixed bottom-5 right-5 z-[200] flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${isError ? "bg-red-50 border-red-200 text-red-800" : "bg-green-50 border-green-200 text-green-800"}`}
     >
       {isError ? (
         <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
@@ -49,11 +51,17 @@ export default function Alumnos() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Estados del Modal y Formulario
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  const [alumnoAEliminar, setAlumnoAEliminar] = useState(null);
+
   const [searchTerm, setSearchTerm] = useState("");
 
   // Estados de Biometría
@@ -61,7 +69,7 @@ export default function Alumnos() {
   const [stream, setStream] = useState(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [descriptor, setDescriptor] = useState(null); // Aquí guardaremos el array de 128 puntos
+  const [descriptor, setDescriptor] = useState(null);
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -112,13 +120,12 @@ export default function Alumnos() {
     loadModels();
   }, []);
 
-  // Manejo de la cámara cuando se abre/cierra el modal
   useEffect(() => {
     if (open) {
       iniciarCamara();
     } else {
       detenerCamara();
-      setDescriptor(null); // Limpiamos el rostro si cerramos
+      setDescriptor(null);
     }
   }, [open]);
 
@@ -143,7 +150,6 @@ export default function Alumnos() {
 
   const handleChange = (field, value) => setForm({ ...form, [field]: value });
 
-  // Función para capturar el rostro desde el video
   const capturarRostro = async () => {
     if (!videoRef.current || !modelsLoaded) return;
     setIsScanning(true);
@@ -160,7 +166,7 @@ export default function Alumnos() {
         );
         setDescriptor(null);
       } else {
-        setDescriptor(Array.from(detection.descriptor)); // Guardamos los 128 puntos
+        setDescriptor(Array.from(detection.descriptor));
         showToast("success", "Rostro capturado y codificado correctamente.");
       }
     } catch (e) {
@@ -174,7 +180,8 @@ export default function Alumnos() {
     if (!form.nombre || !form.DNI || !form.id_aula || !form.padre_id) {
       return showToast("error", "Complete todos los campos académicos.");
     }
-    if (!descriptor) {
+    // Si estamos creando, el rostro es obligatorio. Si estamos editando, es opcional.
+    if (!isEditing && !descriptor) {
       return showToast(
         "error",
         "Debe capturar el rostro del alumno antes de guardar.",
@@ -185,21 +192,64 @@ export default function Alumnos() {
       nombre: form.nombre,
       DNI: form.DNI,
       id_aula: Number(form.id_aula),
-      padres_ids: [Number(form.padre_id)], // El backend espera un array de IDs
-      descriptor: descriptor, // Los 128 puntos faciales
+      padres_ids: [Number(form.padre_id)],
     };
+
+    if (descriptor) {
+      payload.descriptor = descriptor;
+    }
 
     setIsSaving(true);
     try {
-      await AlumnosService.create(payload);
-      showToast("success", "Alumno y biometría registrados correctamente.");
-      setOpen(false);
+      if (isEditing) {
+        await AlumnosService.update(editingId, payload);
+        showToast("success", "Alumno actualizado correctamente.");
+      } else {
+        await AlumnosService.create(payload);
+        showToast("success", "Alumno y biometría registrados correctamente.");
+      }
+      cerrarModal();
       await cargarDatos();
     } catch (err) {
       showToast("error", err.message);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleEliminar = async () => {
+    if (!alumnoAEliminar) return;
+    setIsDeleting(true);
+    try {
+      await AlumnosService.remove(alumnoAEliminar.id_alumno);
+      showToast("success", "Alumno y su biometría eliminados permanentemente.");
+      setAlumnoAEliminar(null);
+      await cargarDatos();
+    } catch (err) {
+      showToast("error", "No se pudo eliminar: " + err.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const abrirModalEditar = (alumno) => {
+    setForm({
+      nombre: alumno.nombre,
+      DNI: alumno.DNI,
+      id_aula: alumno.aula?.id_aula || alumno.id_aula || "",
+      padre_id:
+        alumno.padres && alumno.padres.length > 0 ? alumno.padres[0].id : "",
+    });
+    setEditingId(alumno.id_alumno);
+    setIsEditing(true);
+    setOpen(true);
+  };
+
+  const cerrarModal = () => {
+    setForm(emptyForm);
+    setIsEditing(false);
+    setEditingId(null);
+    setOpen(false);
   };
 
   const alumnosFiltrados = useMemo(() => {
@@ -221,6 +271,8 @@ export default function Alumnos() {
         <button
           onClick={() => {
             setForm(emptyForm);
+            setIsEditing(false);
+            setEditingId(null);
             setOpen(true);
           }}
           className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
@@ -237,7 +289,7 @@ export default function Alumnos() {
             placeholder="Buscar por nombre o DNI..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
@@ -256,39 +308,56 @@ export default function Alumnos() {
           <tbody className="divide-y">
             {isLoading ? (
               <tr>
-                <td colSpan="5" className="text-center py-4">
-                  <Loader2 className="animate-spin mx-auto h-5 w-5 text-gray-400" />
+                <td colSpan="5" className="text-center py-8">
+                  <Loader2 className="animate-spin mx-auto h-6 w-6 text-gray-400" />
+                </td>
+              </tr>
+            ) : alumnosFiltrados.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="text-center py-8 text-gray-500">
+                  No se encontraron alumnos.
                 </td>
               </tr>
             ) : (
               alumnosFiltrados.map((d) => (
-                <tr key={d.id_alumno}>
-                  <td className="px-6 py-4 font-medium text-gray-500">
+                <tr
+                  key={d.id_alumno}
+                  className="hover:bg-slate-50 transition-colors"
+                >
+                  <td className="px-6 py-4 font-mono text-xs text-gray-500">
                     {d.DNI}
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900">
                     {d.nombre}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
-                    {d.aula?.nombre || "—"}
+                    {d.aula ? `${d.aula.grado} "${d.aula.seccion}"` : "—"}
                   </td>
                   <td className="px-6 py-4">
                     {d.biometrias?.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
                         <Check className="h-3 w-3" /> Registrada
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded-md">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
                         Pendiente
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-6 py-4 text-center flex justify-center gap-2">
                     <button
-                      className="text-red-600 hover:bg-red-50 p-2 rounded-md"
-                      title="Eliminar (Próximamente)"
+                      onClick={() => abrirModalEditar(d)}
+                      className="text-blue-600 hover:bg-blue-100 p-2 rounded-md transition-colors"
+                      title="Editar Alumno"
                     >
-                      <X className="h-4 w-4" />
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setAlumnoAEliminar(d)}
+                      className="text-red-600 hover:bg-red-100 p-2 rounded-md transition-colors"
+                      title="Eliminar Alumno"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
@@ -298,7 +367,50 @@ export default function Alumnos() {
         </table>
       </div>
 
-      {/* MODAL DE REGISTRO CON ESCÁNER INTEGRADO */}
+      {/* ─── MODAL DE CONFIRMACIÓN DE ELIMINACIÓN ─── */}
+      {alumnoAEliminar &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center">
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                ¿Eliminar Alumno?
+              </h2>
+              <p className="text-sm text-gray-500 mb-6">
+                Estás a punto de eliminar a{" "}
+                <strong>{alumnoAEliminar.nombre}</strong>. Se borrará su
+                biometría y todo su historial de asistencia. Esta acción es
+                irreversible.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setAlumnoAEliminar(null)}
+                  disabled={isDeleting}
+                  className="flex-1 py-2 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEliminar}
+                  disabled={isDeleting}
+                  className="flex-1 py-2 bg-red-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-70 transition-colors"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* MODAL DE REGISTRO / EDICIÓN CON ESCÁNER INTEGRADO */}
       {open &&
         createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
@@ -306,11 +418,13 @@ export default function Alumnos() {
               {/* Mitad Izquierda: Formulario de Datos */}
               <div className="w-full md:w-1/2 p-8 border-r border-gray-100 flex flex-col bg-gray-50/50">
                 <h2 className="text-xl font-bold mb-6 text-gray-800">
-                  1. Datos del Alumno
+                  {isEditing
+                    ? "1. Editar Datos del Alumno"
+                    : "1. Datos del Alumno"}
                 </h2>
-                <div className="space-y-4 flex-1">
+                <div className="space-y-5 flex-1">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
                       DNI
                     </label>
                     <input
@@ -323,7 +437,7 @@ export default function Alumnos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
                       Nombre Completo
                     </label>
                     <input
@@ -334,7 +448,7 @@ export default function Alumnos() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
                       Asignar Aula
                     </label>
                     <select
@@ -342,7 +456,9 @@ export default function Alumnos() {
                       onChange={(e) => handleChange("id_aula", e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                     >
-                      <option value="">Seleccione el aula...</option>
+                      <option value="" disabled>
+                        Seleccione el aula...
+                      </option>
                       {aulas.map((a) => (
                         <option key={a.id_aula} value={a.id_aula}>
                           {a.nombre} - {a.grado} "{a.seccion}"
@@ -351,7 +467,7 @@ export default function Alumnos() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
                       Vincular Padre/Apoderado
                     </label>
                     <select
@@ -359,7 +475,9 @@ export default function Alumnos() {
                       onChange={(e) => handleChange("padre_id", e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                     >
-                      <option value="">Seleccione al apoderado...</option>
+                      <option value="" disabled>
+                        Seleccione al apoderado...
+                      </option>
                       {padres.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.nombre} {p.apellido}
@@ -373,7 +491,12 @@ export default function Alumnos() {
               {/* Mitad Derecha: Cámara y Biometría */}
               <div className="w-full md:w-1/2 p-8 flex flex-col items-center justify-center bg-white">
                 <h2 className="text-xl font-bold mb-6 text-gray-800 w-full text-left">
-                  2. Captura Facial
+                  2. Captura Facial{" "}
+                  {isEditing && (
+                    <span className="text-sm font-normal text-gray-400 ml-2">
+                      (Opcional)
+                    </span>
+                  )}
                 </h2>
 
                 <div className="relative w-full aspect-square max-w-[280px] bg-slate-900 rounded-2xl overflow-hidden shadow-inner mb-6 border-4 border-slate-100">
@@ -392,7 +515,6 @@ export default function Alumnos() {
                         className="absolute inset-0 w-full h-full object-cover"
                         style={{ transform: "scaleX(-1)" }}
                       />
-                      {/* Overlay visual cuando ya se capturó */}
                       {descriptor && (
                         <div className="absolute inset-0 bg-emerald-500/20 backdrop-blur-[2px] flex items-center justify-center border-4 border-emerald-400 rounded-xl">
                           <div className="bg-emerald-500 text-white rounded-full p-3 shadow-lg">
@@ -425,24 +547,28 @@ export default function Alumnos() {
                     ) : (
                       <Camera className="h-5 w-5" />
                     )}
-                    {isScanning ? "Analizando rostro..." : "Escanear Rostro"}
+                    {isScanning
+                      ? "Analizando rostro..."
+                      : isEditing
+                        ? "Actualizar Rostro"
+                        : "Escanear Rostro"}
                   </button>
                 )}
 
                 <div className="w-full flex gap-3 mt-auto pt-6">
                   <button
-                    onClick={() => setOpen(false)}
+                    onClick={cerrarModal}
                     className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={isSaving || !descriptor}
+                    disabled={isSaving || (!isEditing && !descriptor)}
                     className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-200"
                   >
                     {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}{" "}
-                    Guardar Alumno
+                    {isEditing ? "Guardar Cambios" : "Guardar Alumno"}
                   </button>
                 </div>
               </div>

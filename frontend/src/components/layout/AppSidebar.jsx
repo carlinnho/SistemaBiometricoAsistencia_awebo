@@ -7,7 +7,9 @@ import {
   UserCircle,
   BookOpen,
   CalendarClock,
-  ScanFace, // <-- Agregado para el escáner del docente
+  ScanFace,
+  MonitorPlay,
+  ClipboardList, // <-- IMPORTADO PARA EL REGISTRO GENERAL
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
@@ -27,10 +29,17 @@ const DOCENTE_ITEMS = [
 ];
 
 const ADMIN_ITEMS = [
+  { title: "Quiosco Principal", url: "/app/quiosco", icon: MonitorPlay },
+  { title: "Reg. Asistencia", url: "/app/asistencias", icon: ClipboardList }, // <-- NUEVA PESTAÑA AÑADIDA
   { title: "Docentes", url: "/app/docentes", icon: Users },
   { title: "Padres de Familia", url: "/app/padres", icon: UserCircle },
   { title: "Aulas", url: "/app/aulas", icon: BookOpen },
   { title: "Horarios", url: "/app/horarios", icon: CalendarClock },
+  {
+    title: "Horarios Personal",
+    url: "/app/horarios-personal",
+    icon: CalendarClock,
+  },
   { title: "Alumnos", url: "/app/alumnos", icon: GraduationCap },
   { title: "Configuración", url: "/app/configuracion", icon: Settings },
 ];

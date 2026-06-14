@@ -6,16 +6,19 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Alumno } from '../../alumnos/entities/alumno.entity';
+import { Usuario } from '../../usuarios/entities/usuario.entity';
 
 @Entity('biometria')
 export class Biometria {
   @PrimaryGeneratedColumn()
   id_biometria: number;
 
-  @Column()
+  @Column({ nullable: true })
   id_alumno: number;
 
-  // Guardamos el Float32Array como string (JSON) en un longtext
+  @Column({ nullable: true })
+  id_usuario: number;
+
   @Column({ type: 'longtext' })
   embedding_facial: string;
 
@@ -30,4 +33,10 @@ export class Biometria {
   })
   @JoinColumn({ name: 'id_alumno' })
   alumno: Alumno;
+
+  @ManyToOne(() => Usuario, (usuario) => usuario.biometrias, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'id_usuario' })
+  usuario: Usuario;
 }

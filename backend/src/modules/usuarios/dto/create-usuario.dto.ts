@@ -1,7 +1,9 @@
 import {
+  IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   MinLength,
@@ -30,4 +32,10 @@ export class CreateUsuarioDto {
   @IsOptional()
   @IsBoolean()
   activo?: boolean;
+
+  // NUEVO: Permite recibir el arreglo matemático del rostro
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  descriptor?: number[];
 }

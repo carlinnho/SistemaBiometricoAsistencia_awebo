@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { AulasService } from "../services/aulas.service";
 import { AlumnosService } from "../services/alumnos.service";
+import { AsistenciaService } from "../services/asistencia.service"; // <-- IMPORTAMOS EL SERVICIO
 
 export default function DocenteAsistencia() {
   const { user } = useAuth();
@@ -20,8 +21,7 @@ export default function DocenteAsistencia() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fecha actual para mostrar en el panel
-  const hoy = new Date().toLocaleDateString("es-ES", {
+  const hoyFormatoLocal = new Date().toLocaleDateString("es-ES", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -31,27 +31,43 @@ export default function DocenteAsistencia() {
   const cargarDatos = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [aulas, alumnos] = await Promise.all([
+      const [aulas, alumnos, asistencias] = await Promise.all([
         AulasService.getAll(),
         AlumnosService.getAll(),
+        AsistenciaService.getAll(), // <-- TRAEMOS ASISTENCIAS
       ]);
 
       const aulaDelDocente = aulas.find((a) => a.id_docente === user.id);
       setMiAula(aulaDelDocente || null);
 
       if (aulaDelDocente) {
+        // Filtrar alumnos del aula
         const alumnosDelAula = alumnos.filter(
           (al) => al.id_aula === aulaDelDocente.id_aula,
         );
-        // Aquí en el futuro cruzaremos estos datos con la tabla "asistencia"
-        // Por ahora, les agregamos un estado mock "pendiente"
-        const alumnosConAsistencia = alumnosDelAula.map((al) => ({
-          ...al,
-          asistenciaHoy: {
-            estado: "pendiente", // 'puntual', 'tardanza', 'inasistencia', 'pendiente'
-            hora_registro: null,
-          },
-        }));
+
+        // Obtener la fecha de hoy en formato YYYY-MM-DD para buscar en los registros
+        const hoyIso = new Date(new Date().getTime() - 5 * 3600 * 1000)
+          .toISOString()
+          .split("T")[0];
+
+        // Mapear la asistencia real de cada alumno para hoy
+        const alumnosConAsistencia = alumnosDelAula.map((al) => {
+          const asistenciaHoy = asistencias.find(
+            (asis) =>
+              asis.id_alumno === al.id_alumno && asis.fecha.startsWith(hoyIso),
+          );
+
+          return {
+            ...al,
+            asistencia: asistenciaHoy || {
+              estado: "sin marcar",
+              hora_entrada: null,
+              hora_salida: null,
+            },
+          };
+        });
+
         setMisAlumnos(alumnosConAsistencia);
       }
     } catch (error) {
@@ -73,7 +89,6 @@ export default function DocenteAsistencia() {
     );
   }, [misAlumnos, searchTerm]);
 
-  // Helper para renderizar el badge de estado
   const getEstadoBadge = (estado) => {
     switch (estado) {
       case "puntual":
@@ -105,7 +120,6 @@ export default function DocenteAsistencia() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 gap-4">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-3 text-slate-800">
@@ -113,10 +127,9 @@ export default function DocenteAsistencia() {
             Asistencia
           </h1>
           <p className="text-sm text-slate-500 mt-1 capitalize flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4" /> {hoy}
+            <CalendarIcon className="w-4 h-4" /> {hoyFormatoLocal}
           </p>
         </div>
-
         {miAula && (
           <div className="bg-white border shadow-sm px-4 py-2 rounded-xl text-sm font-medium text-slate-700 flex gap-4">
             <div>
@@ -146,7 +159,6 @@ export default function DocenteAsistencia() {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Buscador */}
           <div className="bg-white p-4 rounded-xl border flex gap-4 shadow-sm">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -160,7 +172,6 @@ export default function DocenteAsistencia() {
             </div>
           </div>
 
-          {/* Tabla de Asistencia */}
           <div className="bg-white rounded-xl border overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
@@ -171,10 +182,13 @@ export default function DocenteAsistencia() {
                       Nombre del Alumno
                     </th>
                     <th className="px-6 py-4 font-semibold text-center">
-                      Hora de Registro
+                      Entrada
                     </th>
                     <th className="px-6 py-4 font-semibold text-center">
-                      Estado Actual
+                      Salida
+                    </th>
+                    <th className="px-6 py-4 font-semibold text-center">
+                      Estado
                     </th>
                   </tr>
                 </thead>
@@ -182,7 +196,7 @@ export default function DocenteAsistencia() {
                   {alumnosFiltrados.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="4"
+                        colSpan="5"
                         className="px-6 py-8 text-center text-gray-500"
                       >
                         No se encontraron alumnos.
@@ -200,11 +214,14 @@ export default function DocenteAsistencia() {
                         <td className="px-6 py-4 font-medium text-slate-900">
                           {alumno.nombre}
                         </td>
-                        <td className="px-6 py-4 text-center font-mono text-sm text-slate-600">
-                          {alumno.asistenciaHoy.hora_registro || "--:--"}
+                        <td className="px-6 py-4 text-center font-mono text-sm text-blue-600">
+                          {alumno.asistencia.hora_entrada || "--:--"}
+                        </td>
+                        <td className="px-6 py-4 text-center font-mono text-sm text-gray-500">
+                          {alumno.asistencia.hora_salida || "--:--"}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          {getEstadoBadge(alumno.asistenciaHoy.estado)}
+                          {getEstadoBadge(alumno.asistencia.estado)}
                         </td>
                       </tr>
                     ))

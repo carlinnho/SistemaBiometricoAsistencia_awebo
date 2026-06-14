@@ -12,10 +12,13 @@ import Aulas from "./pages/Aulas";
 import Horarios from "./pages/Horarios";
 import Alumnos from "./pages/Alumnos";
 
-// Nuevas Páginas por Rol
+// Nuevas Páginas por Rol y Quiosco
 import DocenteAula from "./pages/DocenteAula";
 import DocenteAsistencia from "./pages/DocenteAsistencia";
 import PadreDashboard from "./pages/PadreDashboard";
+import QuioscoAsistencia from "./pages/QuioscoAsistencia";
+import HorariosPersonal from "./pages/HorariosPersonal";
+import RegistroAsistencia from "./pages/RegistroAsistencia"; // <-- IMPORTACIÓN AÑADIDA
 
 const queryClient = new QueryClient();
 
@@ -37,6 +40,16 @@ const App = () => (
                 <Route path="/app/aulas" element={<Aulas />} />
                 <Route path="/app/horarios" element={<Horarios />} />
                 <Route path="/app/alumnos" element={<Alumnos />} />
+                <Route
+                  path="/app/horarios-personal"
+                  element={<HorariosPersonal />}
+                />
+                <Route path="/app/quiosco" element={<QuioscoAsistencia />} />
+                <Route
+                  path="/app/asistencias"
+                  element={<RegistroAsistencia />}
+                />{" "}
+                {/* <-- NUEVA RUTA */}
               </Route>
 
               {/* ── RUTAS DE DOCENTE ── */}
