@@ -23,20 +23,25 @@ import { UsuariosService } from "../services/usuarios.service";
 
 const emptyForm = { nombre: "", DNI: "", id_aula: "", padre_id: "" };
 
+/* ─── TOAST ─── */
 function Toast({ toast, onClose }) {
   if (!toast) return null;
   const isError = toast.type === "error";
   return createPortal(
     <div
-      className={`fixed bottom-5 right-5 z-[200] flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${isError ? "bg-red-50 border-red-200 text-red-800" : "bg-green-50 border-green-200 text-green-800"}`}
+      className={`fixed bottom-5 right-5 z-[200] flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
+        isError
+          ? "bg-red-50 border-red-200 text-red-800"
+          : "bg-orange-50 border-orange-200 text-orange-800"
+      }`}
     >
       {isError ? (
         <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
       ) : (
-        <CheckCircle className="h-5 w-5 shrink-0 text-green-500 mt-0.5" />
+        <CheckCircle className="h-5 w-5 shrink-0 text-orange-500 mt-0.5" />
       )}
       <span className="flex-1">{toast.msg}</span>
-      <button onClick={onClose} className="ml-2 opacity-60">
+      <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100">
         <X className="h-4 w-4" />
       </button>
     </div>,
@@ -44,6 +49,7 @@ function Toast({ toast, onClose }) {
   );
 }
 
+/* ─── COMPONENTE PRINCIPAL ─── */
 export default function Alumnos() {
   const [data, setData] = useState([]);
   const [aulas, setAulas] = useState([]);
@@ -54,17 +60,15 @@ export default function Alumnos() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Estados del Modal y Formulario
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
   const [alumnoAEliminar, setAlumnoAEliminar] = useState(null);
-
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Estados de Biometría
+  // Biometría
   const videoRef = useRef(null);
   const [stream, setStream] = useState(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -98,11 +102,8 @@ export default function Alumnos() {
     }
   }, []);
 
-  useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
+  useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
-  // Cargar modelos de face-api una sola vez
   useEffect(() => {
     const loadModels = async () => {
       try {
@@ -113,7 +114,6 @@ export default function Alumnos() {
         ]);
         setModelsLoaded(true);
       } catch (e) {
-        console.error("Error cargando modelos face-api:", e);
         showToast("error", "No se pudieron cargar los modelos biométricos.");
       }
     };
@@ -121,9 +121,8 @@ export default function Alumnos() {
   }, []);
 
   useEffect(() => {
-    if (open) {
-      iniciarCamara();
-    } else {
+    if (open) iniciarCamara();
+    else {
       detenerCamara();
       setDescriptor(null);
     }
@@ -131,19 +130,17 @@ export default function Alumnos() {
 
   const iniciarCamara = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-      });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
       setStream(mediaStream);
       if (videoRef.current) videoRef.current.srcObject = mediaStream;
-    } catch (e) {
+    } catch {
       showToast("error", "No se pudo acceder a la cámara.");
     }
   };
 
   const detenerCamara = () => {
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((t) => t.stop());
       setStream(null);
     }
   };
@@ -153,23 +150,19 @@ export default function Alumnos() {
   const capturarRostro = async () => {
     if (!videoRef.current || !modelsLoaded) return;
     setIsScanning(true);
-
     try {
       const detection = await faceapi
         .detectSingleFace(videoRef.current)
         .withFaceLandmarks()
         .withFaceDescriptor();
       if (!detection) {
-        showToast(
-          "error",
-          "No se detectó un rostro claro. Mira fijamente a la cámara.",
-        );
+        showToast("error", "No se detectó un rostro claro. Mira fijamente a la cámara.");
         setDescriptor(null);
       } else {
         setDescriptor(Array.from(detection.descriptor));
         showToast("success", "Rostro capturado y codificado correctamente.");
       }
-    } catch (e) {
+    } catch {
       showToast("error", "Error procesando la imagen.");
     } finally {
       setIsScanning(false);
@@ -177,16 +170,10 @@ export default function Alumnos() {
   };
 
   const handleSave = async () => {
-    if (!form.nombre || !form.DNI || !form.id_aula || !form.padre_id) {
+    if (!form.nombre || !form.DNI || !form.id_aula || !form.padre_id)
       return showToast("error", "Complete todos los campos académicos.");
-    }
-    // Si estamos creando, el rostro es obligatorio. Si estamos editando, es opcional.
-    if (!isEditing && !descriptor) {
-      return showToast(
-        "error",
-        "Debe capturar el rostro del alumno antes de guardar.",
-      );
-    }
+    if (!isEditing && !descriptor)
+      return showToast("error", "Debe capturar el rostro del alumno antes de guardar.");
 
     const payload = {
       nombre: form.nombre,
@@ -194,10 +181,7 @@ export default function Alumnos() {
       id_aula: Number(form.id_aula),
       padres_ids: [Number(form.padre_id)],
     };
-
-    if (descriptor) {
-      payload.descriptor = descriptor;
-    }
+    if (descriptor) payload.descriptor = descriptor;
 
     setIsSaving(true);
     try {
@@ -237,8 +221,7 @@ export default function Alumnos() {
       nombre: alumno.nombre,
       DNI: alumno.DNI,
       id_aula: alumno.aula?.id_aula || alumno.id_aula || "",
-      padre_id:
-        alumno.padres && alumno.padres.length > 0 ? alumno.padres[0].id : "",
+      padre_id: alumno.padres?.length > 0 ? alumno.padres[0].id : "",
     });
     setEditingId(alumno.id_alumno);
     setIsEditing(true);
@@ -252,261 +235,289 @@ export default function Alumnos() {
     setOpen(false);
   };
 
-  const alumnosFiltrados = useMemo(() => {
-    return data.filter(
-      (d) =>
-        d.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        d.DNI.includes(searchTerm),
-    );
-  }, [data, searchTerm]);
+  const alumnosFiltrados = useMemo(
+    () =>
+      data.filter(
+        (d) =>
+          d.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          d.DNI.includes(searchTerm),
+      ),
+    [data, searchTerm],
+  );
+
+  const inputCls =
+    "w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all text-sm";
+
+  const labelCls = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in relative">
+    <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in">
       <Toast toast={toast} onClose={() => setToast(null)} />
 
+      {/* ─── HEADER ─── */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          <GraduationCap className="h-6 w-6 text-blue-600" /> Gestión de Alumnos
-        </h1>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-orange-200">
+            <GraduationCap className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">Gestión de Alumnos</h1>
+            <p className="text-xs text-gray-400">Registro biométrico y académico de estudiantes.</p>
+          </div>
+        </div>
         <button
-          onClick={() => {
-            setForm(emptyForm);
-            setIsEditing(false);
-            setEditingId(null);
-            setOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          onClick={() => { setForm(emptyForm); setIsEditing(false); setEditingId(null); setOpen(true); }}
+          className="flex items-center gap-2 px-4 py-2.5 text-white text-sm font-semibold bg-orange-500 hover:bg-orange-600 rounded-xl shadow-md shadow-orange-200 transition-all active:scale-95"
         >
           <ScanFace className="h-4 w-4" /> Registrar Alumno
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-xl border flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre o DNI..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      {/* ─── BUSCADOR ─── */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Buscar por nombre o DNI..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all shadow-sm rounded-xl"
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      <div className="bg-white rounded-xl border overflow-hidden">
+      {/* ─── TABLA ─── */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-6 py-4">DNI</th>
-              <th className="px-6 py-4">Nombre del Alumno</th>
-              <th className="px-6 py-4">Aula</th>
-              <th className="px-6 py-4">Biometría</th>
-              <th className="px-6 py-4 text-center">Acciones</th>
+          <thead>
+            <tr className="bg-gray-700">
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">DNI</th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Nombre del Alumno</th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Aula</th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Biometría</th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider text-center">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-50">
             {isLoading ? (
               <tr>
-                <td colSpan="5" className="text-center py-8">
-                  <Loader2 className="animate-spin mx-auto h-6 w-6 text-gray-400" />
+                <td colSpan="5" className="text-center py-16">
+                  <Loader2 className="animate-spin mx-auto h-7 w-7 text-orange-500 mb-2" />
+                  <p className="text-sm text-gray-400">Cargando alumnos...</p>
                 </td>
               </tr>
             ) : alumnosFiltrados.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center py-8 text-gray-500">
-                  No se encontraron alumnos.
+                <td colSpan="5" className="text-center py-16">
+                  <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <GraduationCap className="h-6 w-6 text-gray-300" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-400">No se encontraron alumnos.</p>
                 </td>
               </tr>
             ) : (
               alumnosFiltrados.map((d) => (
-                <tr
-                  key={d.id_alumno}
-                  className="hover:bg-slate-50 transition-colors"
-                >
-                  <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                <tr key={d.id_alumno} className="hover:bg-orange-50/40 transition-colors">
+                  <td className="px-6 py-4 font-mono text-xs text-gray-400 tracking-wider">
                     {d.DNI}
                   </td>
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {d.nombre}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {d.aula ? `${d.aula.grado} "${d.aula.seccion}"` : "—"}
+                  <td className="px-6 py-4 font-bold text-gray-800">{d.nombre}</td>
+                  <td className="px-6 py-4">
+                    {d.aula ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-semibold text-gray-600">
+                        {d.aula.grado} <span className="text-gray-300">·</span> Sec. {d.aula.seccion}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300">—</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     {d.biometrias?.length > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-200">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
                         <Check className="h-3 w-3" /> Registrada
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-600 border border-amber-200">
                         Pendiente
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-center flex justify-center gap-2">
-                    <button
-                      onClick={() => abrirModalEditar(d)}
-                      className="text-blue-600 hover:bg-blue-100 p-2 rounded-md transition-colors"
-                      title="Editar Alumno"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setAlumnoAEliminar(d)}
-                      className="text-red-600 hover:bg-red-100 p-2 rounded-md transition-colors"
-                      title="Eliminar Alumno"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center gap-1">
+                      <button
+                        onClick={() => abrirModalEditar(d)}
+                        title="Editar Alumno"
+                        className="p-2 rounded-xl text-orange-500 hover:bg-orange-100 transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setAlumnoAEliminar(d)}
+                        title="Eliminar Alumno"
+                        className="p-2 rounded-xl text-gray-400 hover:bg-red-100 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+
+        {!isLoading && alumnosFiltrados.length > 0 && (
+          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50">
+            <p className="text-xs text-gray-400">
+              Mostrando <span className="font-semibold text-gray-600">{alumnosFiltrados.length}</span> alumno{alumnosFiltrados.length !== 1 ? "s" : ""}
+              {searchTerm && ` para "${searchTerm}"`}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* ─── MODAL DE CONFIRMACIÓN DE ELIMINACIÓN ─── */}
+      {/* ─── MODAL CONFIRMAR ELIMINACIÓN ─── */}
       {alumnoAEliminar &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl p-6 text-center">
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="h-8 w-8 text-red-600" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
-                ¿Eliminar Alumno?
-              </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Estás a punto de eliminar a{" "}
-                <strong>{alumnoAEliminar.nombre}</strong>. Se borrará su
-                biometría y todo su historial de asistencia. Esta acción es
-                irreversible.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setAlumnoAEliminar(null)}
-                  disabled={isDeleting}
-                  className="flex-1 py-2 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleEliminar}
-                  disabled={isDeleting}
-                  className="flex-1 py-2 bg-red-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-700 disabled:opacity-70 transition-colors"
-                >
-                  {isDeleting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                  Sí, eliminar
-                </button>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+              <div className="h-1.5 bg-red-500 w-full" />
+              <div className="p-6 text-center">
+                <div className="mx-auto w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+                  <AlertTriangle className="h-7 w-7 text-red-500" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">¿Eliminar Alumno?</h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Estás a punto de eliminar a{" "}
+                  <strong className="text-gray-800">{alumnoAEliminar.nombre}</strong>. Se borrará su
+                  biometría y todo su historial de asistencia. Esta acción es irreversible.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setAlumnoAEliminar(null)}
+                    disabled={isDeleting}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleEliminar}
+                    disabled={isDeleting}
+                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
+                  >
+                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    Sí, eliminar
+                  </button>
+                </div>
               </div>
             </div>
           </div>,
           document.body,
         )}
 
-      {/* MODAL DE REGISTRO / EDICIÓN CON ESCÁNER INTEGRADO */}
+      {/* ─── MODAL REGISTRO / EDICIÓN CON ESCÁNER ─── */}
       {open &&
         createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
-              {/* Mitad Izquierda: Formulario de Datos */}
-              <div className="w-full md:w-1/2 p-8 border-r border-gray-100 flex flex-col bg-gray-50/50">
-                <h2 className="text-xl font-bold mb-6 text-gray-800">
-                  {isEditing
-                    ? "1. Editar Datos del Alumno"
-                    : "1. Datos del Alumno"}
-                </h2>
-                <div className="space-y-5 flex-1">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
-                      DNI
-                    </label>
-                    <input
-                      type="text"
-                      maxLength="8"
-                      value={form.DNI}
-                      onChange={(e) => handleChange("DNI", e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                      placeholder="8 dígitos"
-                    />
+
+              {/* ── Mitad Izquierda: Formulario ── */}
+              <div className="w-full md:w-1/2 flex flex-col overflow-hidden">
+                {/* Banda naranja */}
+                <div className="h-1.5 bg-orange-500 w-full" />
+                <div className="p-8 flex flex-col flex-1 bg-gray-50/60">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center">
+                      <GraduationCap className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <h2 className="text-base font-bold text-gray-800">
+                      {isEditing ? "Editar Datos del Alumno" : "Datos del Alumno"}
+                    </h2>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
-                      Nombre Completo
-                    </label>
-                    <input
-                      type="text"
-                      value={form.nombre}
-                      onChange={(e) => handleChange("nombre", e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
-                      Asignar Aula
-                    </label>
-                    <select
-                      value={form.id_aula}
-                      onChange={(e) => handleChange("id_aula", e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                    >
-                      <option value="" disabled>
-                        Seleccione el aula...
-                      </option>
-                      {aulas.map((a) => (
-                        <option key={a.id_aula} value={a.id_aula}>
-                          {a.nombre} - {a.grado} "{a.seccion}"
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">
-                      Vincular Padre/Apoderado
-                    </label>
-                    <select
-                      value={form.padre_id}
-                      onChange={(e) => handleChange("padre_id", e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                    >
-                      <option value="" disabled>
-                        Seleccione al apoderado...
-                      </option>
-                      {padres.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.nombre} {p.apellido}
-                        </option>
-                      ))}
-                    </select>
+
+                  <div className="space-y-4 flex-1">
+                    <div>
+                      <label className={labelCls}>DNI</label>
+                      <input
+                        type="text"
+                        maxLength="8"
+                        placeholder="8 dígitos"
+                        value={form.DNI}
+                        onChange={(e) => handleChange("DNI", e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Nombre Completo</label>
+                      <input
+                        type="text"
+                        value={form.nombre}
+                        onChange={(e) => handleChange("nombre", e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Asignar Aula</label>
+                      <select
+                        value={form.id_aula}
+                        onChange={(e) => handleChange("id_aula", e.target.value)}
+                        className={inputCls}
+                      >
+                        <option value="" disabled>Seleccione el aula...</option>
+                        {aulas.map((a) => (
+                          <option key={a.id_aula} value={a.id_aula}>
+                            {a.nombre} — {a.grado} "{a.seccion}"
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Vincular Padre / Apoderado</label>
+                      <select
+                        value={form.padre_id}
+                        onChange={(e) => handleChange("padre_id", e.target.value)}
+                        className={inputCls}
+                      >
+                        <option value="" disabled>Seleccione al apoderado...</option>
+                        {padres.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nombre} {p.apellido}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Mitad Derecha: Cámara y Biometría */}
-              <div className="w-full md:w-1/2 p-8 flex flex-col items-center justify-center bg-white">
-                <h2 className="text-xl font-bold mb-6 text-gray-800 w-full text-left">
-                  2. Captura Facial{" "}
-                  {isEditing && (
-                    <span className="text-sm font-normal text-gray-400 ml-2">
-                      (Opcional)
-                    </span>
-                  )}
-                </h2>
+              {/* ── Mitad Derecha: Cámara ── */}
+              <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8 bg-white border-l border-gray-100">
+                <div className="w-full flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-gray-900 rounded-xl flex items-center justify-center">
+                    <Camera className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-gray-800">
+                      Captura Facial
+                      {isEditing && (
+                        <span className="ml-2 text-xs font-normal text-gray-400">(Opcional)</span>
+                      )}
+                    </h2>
+                  </div>
+                </div>
 
-                <div className="relative w-full aspect-square max-w-[280px] bg-slate-900 rounded-2xl overflow-hidden shadow-inner mb-6 border-4 border-slate-100">
-                  {!modelsLoaded ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50">
-                      <Loader2 className="h-8 w-8 animate-spin mb-2" />
-                      <span className="text-xs">Cargando IA...</span>
-                    </div>
-                  ) : (
-                    <>
+                {/* Visor de cámara */}
+                <div className="relative w-full aspect-square max-w-[260px] mb-5">
+                  {/* Fondo del visor */}
+                  <div className="absolute inset-0 bg-gray-100 rounded-2xl overflow-hidden">
+                    {modelsLoaded && (
                       <video
                         ref={videoRef}
                         autoPlay
@@ -515,23 +526,55 @@ export default function Alumnos() {
                         className="absolute inset-0 w-full h-full object-cover"
                         style={{ transform: "scaleX(-1)" }}
                       />
-                      {descriptor && (
-                        <div className="absolute inset-0 bg-emerald-500/20 backdrop-blur-[2px] flex items-center justify-center border-4 border-emerald-400 rounded-xl">
-                          <div className="bg-emerald-500 text-white rounded-full p-3 shadow-lg">
-                            <Check className="h-10 w-10" />
-                          </div>
+                    )}
+
+                    {/* Silueta de persona cuando no hay descriptor */}
+                    {!descriptor && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <svg viewBox="0 0 64 72" className="w-24 h-24 text-gray-300 fill-current">
+                          <circle cx="32" cy="20" r="13" />
+                          <path d="M4 68c0-15.464 12.536-28 28-28s28 12.536 28 28" />
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* Spinner cargando modelos */}
+                    {!modelsLoaded && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="h-7 w-7 animate-spin text-orange-400" />
+                        <span className="text-xs text-gray-400">Cargando IA...</span>
+                      </div>
+                    )}
+
+                    {/* Overlay verde al capturar */}
+                    {descriptor && (
+                      <div className="absolute inset-0 bg-green-500/20 backdrop-blur-[2px] flex items-center justify-center">
+                        <div className="bg-green-500 text-white rounded-full p-3 shadow-lg">
+                          <Check className="h-10 w-10" />
                         </div>
-                      )}
-                    </>
-                  )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Esquinas naranja tipo visor */}
+                  {!descriptor && (<>
+                    {/* Top-left */}
+                    <span className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-orange-500 rounded-tl-2xl pointer-events-none" />
+                    {/* Top-right */}
+                    <span className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-orange-500 rounded-tr-2xl pointer-events-none" />
+                    {/* Bottom-left */}
+                    <span className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-orange-500 rounded-bl-2xl pointer-events-none" />
+                    {/* Bottom-right */}
+                    <span className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-orange-500 rounded-br-2xl pointer-events-none" />
+                  </>)}
                 </div>
 
                 {descriptor ? (
-                  <div className="w-full text-center p-3 bg-emerald-50 rounded-lg border border-emerald-100 text-emerald-700 text-sm font-medium mb-4">
-                    Rostro procesado y listo para guardar.
+                  <div className="w-full text-center p-3 bg-green-50 rounded-xl border border-green-100 text-green-700 text-sm font-medium mb-4">
+                    Rostro listo para guardar.
                     <button
                       onClick={() => setDescriptor(null)}
-                      className="block w-full mt-2 text-xs text-emerald-600 underline"
+                      className="block w-full mt-1.5 text-xs text-green-600 underline"
                     >
                       Volver a capturar
                     </button>
@@ -540,34 +583,30 @@ export default function Alumnos() {
                   <button
                     onClick={capturarRostro}
                     disabled={isScanning || !modelsLoaded}
-                    className="w-full py-3 bg-slate-900 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50"
+                    className="w-full py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 mb-4"
                   >
                     {isScanning ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Camera className="h-5 w-5" />
+                      <Camera className="h-4 w-4" />
                     )}
-                    {isScanning
-                      ? "Analizando rostro..."
-                      : isEditing
-                        ? "Actualizar Rostro"
-                        : "Escanear Rostro"}
+                    {isScanning ? "Analizando rostro..." : isEditing ? "Actualizar Rostro" : "Escanear Rostro"}
                   </button>
                 )}
 
-                <div className="w-full flex gap-3 mt-auto pt-6">
+                <div className="w-full flex gap-3 mt-auto pt-2">
                   <button
                     onClick={cerrarModal}
-                    className="flex-1 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={handleSave}
                     disabled={isSaving || (!isEditing && !descriptor)}
-                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-200"
+                    className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 shadow-md shadow-orange-200 disabled:opacity-50 transition-all active:scale-95"
                   >
-                    {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}{" "}
+                    {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                     {isEditing ? "Guardar Cambios" : "Guardar Alumno"}
                   </button>
                 </div>

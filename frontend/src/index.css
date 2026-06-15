@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+:root {
+	--color-primary: #E8601C;
+	--color-primary-dark: #C2410C;
+}
+
+/* Map Tailwind blue utilities to orange */
+.bg-blue-600 { background-color: #E8601C !important; }
+.bg-blue-500 { background-color: #F97316 !important; }
+.bg-blue-100 { background-color: rgba(232, 96, 28, 0.15) !important; }
+.bg-blue-50 { background-color: rgba(232, 96, 28, 0.1) !important; }
+.text-blue-600 { color: #E8601C !important; }
+.text-blue-700 { color: #C2410C !important; }
+.text-blue-900 { color: #7C2D12 !important; }
+.border-blue-200 { border-color: rgba(232, 96, 28, 0.18) !important; }
+.border-blue-100 { border-color: rgba(232, 96, 28, 0.14) !important; }
+.hover\:bg-blue-50:hover { background-color: rgba(232, 96, 28, 0.1) !important; }
+.hover\:bg-blue-100:hover { background-color: rgba(232, 96, 28, 0.15) !important; }
+.hover\:text-blue-600:hover { color: #E8601C !important; }
