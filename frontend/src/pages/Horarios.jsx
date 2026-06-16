@@ -19,20 +19,25 @@ const emptyForm = {
   hora_salida: "",
 };
 
+/* ─── TOAST ─── */
 function Toast({ toast, onClose }) {
   if (!toast) return null;
   const isError = toast.type === "error";
   return createPortal(
     <div
-      className={`fixed bottom-5 right-5 z-200 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${isError ? "bg-red-50 border-red-200 text-red-800" : "bg-green-50 border-green-200 text-green-800"}`}
+      className={`fixed bottom-5 right-5 z-[200] flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
+        isError
+          ? "bg-red-50 border-red-200 text-red-800"
+          : "bg-orange-50 border-orange-200 text-orange-800"
+      }`}
     >
       {isError ? (
         <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
       ) : (
-        <CheckCircle className="h-5 w-5 shrink-0 text-green-500 mt-0.5" />
+        <CheckCircle className="h-5 w-5 shrink-0 text-orange-500 mt-0.5" />
       )}
       <span className="flex-1">{toast.msg}</span>
-      <button onClick={onClose} className="ml-2 opacity-60">
+      <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100">
         <X className="h-4 w-4" />
       </button>
     </div>,
@@ -40,6 +45,23 @@ function Toast({ toast, onClose }) {
   );
 }
 
+/* ─── TIME BADGE ─── */
+function TimeBadge({ time, variant }) {
+  const styles = {
+    entrada: "bg-green-50 text-green-700 border-green-200",
+    limite: "bg-orange-50 text-orange-700 border-orange-200",
+    salida: "bg-gray-100 text-gray-600 border-gray-200",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[variant]}`}
+    >
+      {time}
+    </span>
+  );
+}
+
+/* ─── COMPONENTE PRINCIPAL ─── */
 export default function Horarios() {
   const [data, setData] = useState([]);
   const [aulas, setAulas] = useState([]);
@@ -73,32 +95,20 @@ export default function Horarios() {
     }
   }, []);
 
-  useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
+  useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
   const handleChange = (field, value) => setForm({ ...form, [field]: value });
 
   const handleSave = async () => {
-    if (
-      !form.id_aula ||
-      !form.hora_entrada ||
-      !form.Hora_limite_puntual ||
-      !form.hora_salida
-    ) {
+    if (!form.id_aula || !form.hora_entrada || !form.Hora_limite_puntual || !form.hora_salida)
       return showToast("error", "Complete todos los campos obligatorios.");
-    }
-    const payload = { ...form, id_aula: Number(form.id_aula) };
 
+    const payload = { ...form, id_aula: Number(form.id_aula) };
     setIsSaving(true);
     try {
       if (isEditing) await HorariosService.update(editingId, payload);
       else await HorariosService.create(payload);
-
-      showToast(
-        "success",
-        `Horario ${isEditing ? "actualizado" : "registrado"} correctamente.`,
-      );
+      showToast("success", `Horario ${isEditing ? "actualizado" : "registrado"} correctamente.`);
       cerrarModal();
       await cargarDatos();
     } catch (err) {
@@ -127,142 +137,208 @@ export default function Horarios() {
     setOpen(false);
   };
 
+  const inputCls =
+    "w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all text-sm";
+
+  const labelCls = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in relative">
+    <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in">
       <Toast toast={toast} onClose={() => setToast(null)} />
 
+      {/* ─── HEADER ─── */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          <CalendarClock className="h-6 w-6 text-blue-600" /> Gestión de
-          Horarios
-        </h1>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-orange-200">
+            <CalendarClock className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">Gestión de Horarios</h1>
+            <p className="text-xs text-gray-400">Configura los horarios de entrada y salida por aula.</p>
+          </div>
+        </div>
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2.5 text-white text-sm font-semibold bg-orange-500 hover:bg-orange-600 rounded-xl shadow-md shadow-orange-200 transition-all active:scale-95"
         >
           <Plus className="h-4 w-4" /> Nuevo Horario
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border overflow-hidden">
+      {/* ─── TABLA ─── */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="px-6 py-4">Aula</th>
-              <th className="px-6 py-4">Hora Entrada</th>
-              <th className="px-6 py-4">Límite Puntual</th>
-              <th className="px-6 py-4">Hora Salida</th>
-              <th className="px-6 py-4 text-center">Acciones</th>
+          <thead>
+            <tr className="bg-gray-700">
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Aula
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Hora Entrada
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Límite Puntual
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Hora Salida
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider text-center">
+                Acciones
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-gray-50">
             {isLoading ? (
               <tr>
-                <td colSpan="5" className="text-center py-4">
-                  <Loader2 className="animate-spin mx-auto h-5 w-5 text-gray-400" />
+                <td colSpan="5" className="text-center py-16">
+                  <Loader2 className="animate-spin mx-auto h-7 w-7 text-orange-500 mb-2" />
+                  <p className="text-sm text-gray-400">Cargando horarios...</p>
+                </td>
+              </tr>
+            ) : data.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="text-center py-16">
+                  <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <CalendarClock className="h-6 w-6 text-gray-300" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-400">No hay horarios registrados.</p>
                 </td>
               </tr>
             ) : (
               data.map((d) => (
-                <tr key={d.id_horario}>
-                  <td className="px-6 py-4 font-medium">{d.aula?.nombre}</td>
-                  <td className="px-6 py-4 text-green-600">{d.hora_entrada}</td>
-                  <td className="px-6 py-4 text-blue-600">
-                    {d.Hora_limite_puntual}
+                <tr key={d.id_horario} className="hover:bg-orange-50/40 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800">
+                    {d.aula?.nombre}
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{d.hora_salida}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={() => abrirModalEditar(d)}
-                      className="text-blue-600 hover:bg-blue-50 p-2 rounded-md"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
+                  <td className="px-6 py-4">
+                    <TimeBadge time={d.hora_entrada} variant="entrada" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <TimeBadge time={d.Hora_limite_puntual} variant="limite" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <TimeBadge time={d.hora_salida} variant="salida" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => abrirModalEditar(d)}
+                        title="Editar Horario"
+                        className="p-2 rounded-xl text-orange-500 hover:bg-orange-100 transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+
+        {/* Footer */}
+        {!isLoading && data.length > 0 && (
+          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50">
+            <p className="text-xs text-gray-400">
+              Mostrando <span className="font-semibold text-gray-600">{data.length}</span> horario{data.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+        )}
       </div>
 
+      {/* ─── MODAL CREAR / EDITAR ─── */}
       {open &&
         createPortal(
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-xl w-full max-w-lg p-6">
-              <h2 className="text-xl font-bold mb-4">
-                {isEditing ? "Editar Horario" : "Nuevo Horario"}
-              </h2>
-              <div className="space-y-4">
-                <select
-                  value={form.id_aula}
-                  onChange={(e) => handleChange("id_aula", e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg bg-white"
-                >
-                  <option value="">Seleccionar Aula...</option>
-                  {aulas.map((a) => (
-                    <option key={a.id_aula} value={a.id_aula}>
-                      {a.nombre} - {a.grado} "{a.seccion}"
-                    </option>
-                  ))}
-                </select>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
+              {/* Banda naranja superior */}
+              <div className="h-1.5 bg-orange-500 w-full" />
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Hora de Entrada
-                    </label>
-                    <input
-                      type="time"
-                      value={form.hora_entrada}
-                      onChange={(e) =>
-                        handleChange("hora_entrada", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
+              <div className="p-7">
+                {/* Header del modal */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-orange-100 rounded-xl flex items-center justify-center">
+                      <CalendarClock className="h-4 w-4 text-orange-500" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900">
+                      {isEditing ? "Editar Horario" : "Nuevo Horario"}
+                    </h2>
                   </div>
+                  <button
+                    onClick={cerrarModal}
+                    className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Campos */}
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Límite Puntual
-                    </label>
-                    <input
-                      type="time"
-                      value={form.Hora_limite_puntual}
-                      onChange={(e) =>
-                        handleChange("Hora_limite_puntual", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
+                    <label className={labelCls}>Aula</label>
+                    <select
+                      value={form.id_aula}
+                      onChange={(e) => handleChange("id_aula", e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="">Seleccionar Aula...</option>
+                      {aulas.map((a) => (
+                        <option key={a.id_aula} value={a.id_aula}>
+                          {a.nombre} — {a.grado} "{a.seccion}"
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      Hora de Salida
-                    </label>
-                    <input
-                      type="time"
-                      value={form.hora_salida}
-                      onChange={(e) =>
-                        handleChange("hora_salida", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border rounded-lg"
-                    />
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className={labelCls}>Hora Entrada</label>
+                      <input
+                        type="time"
+                        value={form.hora_entrada}
+                        onChange={(e) => handleChange("hora_entrada", e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Límite Puntual</label>
+                      <input
+                        type="time"
+                        value={form.Hora_limite_puntual}
+                        onChange={(e) => handleChange("Hora_limite_puntual", e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Hora Salida</label>
+                      <input
+                        type="time"
+                        value={form.hora_salida}
+                        onChange={(e) => handleChange("hora_salida", e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={cerrarModal}
-                  className="px-4 py-2 border rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"
-                >
-                  {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}{" "}
-                  Guardar
-                </button>
+
+                {/* Acciones */}
+                <div className="mt-7 flex justify-end gap-3">
+                  <button
+                    onClick={cerrarModal}
+                    className="px-5 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-md shadow-orange-200 disabled:opacity-60 transition-all active:scale-95"
+                  >
+                    {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Guardar Horario
+                  </button>
+                </div>
               </div>
             </div>
           </div>,
