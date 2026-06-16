@@ -8,6 +8,8 @@ import {
   AlertCircle,
   Loader2,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { HorariosPersonalService } from "../services/horarios-personal.service";
 import { UsuariosService } from "../services/usuarios.service";
@@ -18,6 +20,8 @@ const emptyForm = {
   Hora_limite_puntual: "",
   hora_salida: "",
 };
+
+const PAGE_SIZE = 10;
 
 /* ─── TOAST ─── */
 function Toast({ toast, onClose }) {
@@ -74,6 +78,83 @@ function RolBadge({ rol }) {
   );
 }
 
+/* ─── PAGINATION ─── */
+function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSize }) {
+  if (totalPages <= 1) return null;
+
+  const from = (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, totalItems);
+
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (
+      i === 1 ||
+      i === totalPages ||
+      (i >= currentPage - 1 && i <= currentPage + 1)
+    ) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== "...") {
+      pages.push("...");
+    }
+  }
+
+  const btnBase =
+    "h-8 w-8 flex items-center justify-center rounded-full text-sm font-semibold transition-colors";
+
+  return (
+    <div className="relative px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+      <p className="text-xs text-gray-400">
+        Mostrando{" "}
+        <span className="font-semibold text-gray-600">{from}–{to}</span>{" "}
+        de{" "}
+        <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
+        horario{totalItems !== 1 ? "s" : ""}
+      </p>
+
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`${btnBase} text-gray-400 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed`}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        {pages.map((p, i) =>
+          p === "..." ? (
+            <span
+              key={`ellipsis-${i}`}
+              className="h-8 w-8 flex items-center justify-center text-sm text-gray-400"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onPageChange(p)}
+              className={`${btnBase} ${
+                p === currentPage
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-200"
+                  : "text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {p}
+            </button>
+          ),
+        )}
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`${btnBase} text-gray-400 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed`}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── COMPONENTE PRINCIPAL ─── */
 export default function HorariosPersonal() {
   const [data, setData] = useState([]);
@@ -86,6 +167,9 @@ export default function HorariosPersonal() {
   const [form, setForm] = useState(emptyForm);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -105,6 +189,7 @@ export default function HorariosPersonal() {
           ? listaUsuarios.filter((u) => u.rol !== "padre")
           : [],
       );
+      setCurrentPage(1);
     } catch (err) {
       showToast("error", err.message);
     } finally {
@@ -113,6 +198,13 @@ export default function HorariosPersonal() {
   }, []);
 
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
+
+  // Datos paginados
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const paginatedData = data.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   const handleChange = (field, value) => setForm({ ...form, [field]: value });
 
@@ -213,7 +305,7 @@ export default function HorariosPersonal() {
                 </td>
               </tr>
             ) : (
-              data.map((d) => (
+              paginatedData.map((d) => (
                 <tr key={d.id_horario_usuario} className="hover:bg-orange-50/40 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">
                     {d.usuario?.nombre} {d.usuario?.apellido}
@@ -247,12 +339,15 @@ export default function HorariosPersonal() {
           </tbody>
         </table>
 
+        {/* ─── PAGINACIÓN ─── */}
         {!isLoading && data.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50">
-            <p className="text-xs text-gray-400">
-              Mostrando <span className="font-semibold text-gray-600">{data.length}</span> horario{data.length !== 1 ? "s" : ""}
-            </p>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={data.length}
+            pageSize={PAGE_SIZE}
+          />
         )}
       </div>
 

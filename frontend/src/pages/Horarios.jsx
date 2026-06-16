@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus,
@@ -8,6 +8,8 @@ import {
   AlertCircle,
   Loader2,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { HorariosService } from "../services/horarios.service";
 import { AulasService } from "../services/aulas.service";
@@ -18,6 +20,8 @@ const emptyForm = {
   Hora_limite_puntual: "",
   hora_salida: "",
 };
+
+const PAGE_SIZE = 10;
 
 /* ─── TOAST ─── */
 function Toast({ toast, onClose }) {
@@ -61,6 +65,89 @@ function TimeBadge({ time, variant }) {
   );
 }
 
+/* ─── PAGINATION ─── */
+function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSize }) {
+  if (totalPages <= 1) return null;
+
+  const from = (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, totalItems);
+
+  // Build page number array: always show first, last, current ±1, with ellipsis
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (
+      i === 1 ||
+      i === totalPages ||
+      (i >= currentPage - 1 && i <= currentPage + 1)
+    ) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== "...") {
+      pages.push("...");
+    }
+  }
+
+  const btnBase =
+    "h-8 w-8 flex items-center justify-center rounded-full text-sm font-semibold transition-colors";
+
+  return (
+    <div className="relative px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+      <p className="text-xs text-gray-400">
+        Mostrando{" "}
+        <span className="font-semibold text-gray-600">
+          {from}–{to}
+        </span>{" "}
+        de{" "}
+        <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
+        horario{totalItems !== 1 ? "s" : ""}
+      </p>
+
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
+        {/* Flecha izquierda */}
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`${btnBase} text-gray-400 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed`}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        {/* Números */}
+        {pages.map((p, i) =>
+          p === "..." ? (
+            <span
+              key={`ellipsis-${i}`}
+              className="h-8 w-8 flex items-center justify-center text-sm text-gray-400"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onPageChange(p)}
+              className={`${btnBase} ${
+                p === currentPage
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-200"
+                  : "text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {p}
+            </button>
+          ),
+        )}
+
+        {/* Flecha derecha */}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`${btnBase} text-gray-400 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed`}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── COMPONENTE PRINCIPAL ─── */
 export default function Horarios() {
   const [data, setData] = useState([]);
@@ -73,6 +160,9 @@ export default function Horarios() {
   const [form, setForm] = useState(emptyForm);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
 
   const showToast = (type, msg) => {
     setToast({ type, msg });
@@ -88,6 +178,7 @@ export default function Horarios() {
       ]);
       setData(Array.isArray(listaHorarios) ? listaHorarios : []);
       setAulas(Array.isArray(listaAulas) ? listaAulas : []);
+      setCurrentPage(1);
     } catch (err) {
       showToast("error", err.message);
     } finally {
@@ -95,12 +186,26 @@ export default function Horarios() {
     }
   }, []);
 
-  useEffect(() => { cargarDatos(); }, [cargarDatos]);
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
+
+  // Datos paginados
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const paginatedData = data.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   const handleChange = (field, value) => setForm({ ...form, [field]: value });
 
   const handleSave = async () => {
-    if (!form.id_aula || !form.hora_entrada || !form.Hora_limite_puntual || !form.hora_salida)
+    if (
+      !form.id_aula ||
+      !form.hora_entrada ||
+      !form.Hora_limite_puntual ||
+      !form.hora_salida
+    )
       return showToast("error", "Complete todos los campos obligatorios.");
 
     const payload = { ...form, id_aula: Number(form.id_aula) };
@@ -108,7 +213,10 @@ export default function Horarios() {
     try {
       if (isEditing) await HorariosService.update(editingId, payload);
       else await HorariosService.create(payload);
-      showToast("success", `Horario ${isEditing ? "actualizado" : "registrado"} correctamente.`);
+      showToast(
+        "success",
+        `Horario ${isEditing ? "actualizado" : "registrado"} correctamente.`,
+      );
       cerrarModal();
       await cargarDatos();
     } catch (err) {
@@ -140,7 +248,8 @@ export default function Horarios() {
   const inputCls =
     "w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all text-sm";
 
-  const labelCls = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
+  const labelCls =
+    "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in">
@@ -153,8 +262,12 @@ export default function Horarios() {
             <CalendarClock className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 leading-tight">Gestión de Horarios</h1>
-            <p className="text-xs text-gray-400">Configura los horarios de entrada y salida por aula.</p>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">
+              Gestión de Horarios
+            </h1>
+            <p className="text-xs text-gray-400">
+              Configura los horarios de entrada y salida por aula.
+            </p>
           </div>
         </div>
         <button
@@ -201,12 +314,17 @@ export default function Horarios() {
                   <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                     <CalendarClock className="h-6 w-6 text-gray-300" />
                   </div>
-                  <p className="text-sm font-medium text-gray-400">No hay horarios registrados.</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    No hay horarios registrados.
+                  </p>
                 </td>
               </tr>
             ) : (
-              data.map((d) => (
-                <tr key={d.id_horario} className="hover:bg-orange-50/40 transition-colors">
+              paginatedData.map((d) => (
+                <tr
+                  key={d.id_horario}
+                  className="hover:bg-orange-50/40 transition-colors"
+                >
                   <td className="px-6 py-4 font-bold text-gray-800">
                     {d.aula?.nombre}
                   </td>
@@ -236,13 +354,15 @@ export default function Horarios() {
           </tbody>
         </table>
 
-        {/* Footer */}
+        {/* ─── PAGINACIÓN ─── */}
         {!isLoading && data.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50">
-            <p className="text-xs text-gray-400">
-              Mostrando <span className="font-semibold text-gray-600">{data.length}</span> horario{data.length !== 1 ? "s" : ""}
-            </p>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={data.length}
+            pageSize={PAGE_SIZE}
+          />
         )}
       </div>
 
@@ -297,7 +417,9 @@ export default function Horarios() {
                       <input
                         type="time"
                         value={form.hora_entrada}
-                        onChange={(e) => handleChange("hora_entrada", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("hora_entrada", e.target.value)
+                        }
                         className={inputCls}
                       />
                     </div>
@@ -306,7 +428,9 @@ export default function Horarios() {
                       <input
                         type="time"
                         value={form.Hora_limite_puntual}
-                        onChange={(e) => handleChange("Hora_limite_puntual", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("Hora_limite_puntual", e.target.value)
+                        }
                         className={inputCls}
                       />
                     </div>
@@ -315,7 +439,9 @@ export default function Horarios() {
                       <input
                         type="time"
                         value={form.hora_salida}
-                        onChange={(e) => handleChange("hora_salida", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("hora_salida", e.target.value)
+                        }
                         className={inputCls}
                       />
                     </div>
