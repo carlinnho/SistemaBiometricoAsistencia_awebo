@@ -15,6 +15,8 @@ import {
   Check,
   Trash2,
   AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import { AlumnosService } from "../services/alumnos.service";
@@ -22,6 +24,8 @@ import { AulasService } from "../services/aulas.service";
 import { UsuariosService } from "../services/usuarios.service";
 
 const emptyForm = { nombre: "", DNI: "", id_aula: "", padre_id: "" };
+
+const PAGE_SIZE = 10;
 
 /* ─── TOAST ─── */
 function Toast({ toast, onClose }) {
@@ -49,6 +53,84 @@ function Toast({ toast, onClose }) {
   );
 }
 
+/* ─── PAGINATION ─── */
+function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSize, searchTerm }) {
+  if (totalPages <= 1) return null;
+
+  const from = (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, totalItems);
+
+  const pages = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (
+      i === 1 ||
+      i === totalPages ||
+      (i >= currentPage - 1 && i <= currentPage + 1)
+    ) {
+      pages.push(i);
+    } else if (pages[pages.length - 1] !== "...") {
+      pages.push("...");
+    }
+  }
+
+  const btnBase =
+    "h-8 w-8 flex items-center justify-center rounded-full text-sm font-semibold transition-colors";
+
+  return (
+    <div className="relative px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
+      <p className="text-xs text-gray-400">
+        Mostrando{" "}
+        <span className="font-semibold text-gray-600">{from}–{to}</span>{" "}
+        de{" "}
+        <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
+        alumno{totalItems !== 1 ? "s" : ""}
+        {searchTerm && ` para "${searchTerm}"`}
+      </p>
+
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`${btnBase} text-gray-400 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed`}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        {pages.map((p, i) =>
+          p === "..." ? (
+            <span
+              key={`ellipsis-${i}`}
+              className="h-8 w-8 flex items-center justify-center text-sm text-gray-400"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={p}
+              onClick={() => onPageChange(p)}
+              className={`${btnBase} ${
+                p === currentPage
+                  ? "bg-orange-500 text-white shadow-md shadow-orange-200"
+                  : "text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {p}
+            </button>
+          ),
+        )}
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`${btnBase} text-gray-400 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed`}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── COMPONENTE PRINCIPAL ─── */
 export default function Alumnos() {
   const [data, setData] = useState([]);
@@ -67,6 +149,9 @@ export default function Alumnos() {
 
   const [alumnoAEliminar, setAlumnoAEliminar] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Biometría
   const videoRef = useRef(null);
@@ -95,6 +180,7 @@ export default function Alumnos() {
           ? listaUsuarios.filter((u) => u.rol === "padre")
           : [],
       );
+      setCurrentPage(1);
     } catch (err) {
       showToast("error", err.message);
     } finally {
@@ -127,6 +213,9 @@ export default function Alumnos() {
       setDescriptor(null);
     }
   }, [open]);
+
+  // Resetear página al cambiar búsqueda
+  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
   const iniciarCamara = async () => {
     try {
@@ -245,6 +334,13 @@ export default function Alumnos() {
     [data, searchTerm],
   );
 
+  // Datos paginados
+  const totalPages = Math.ceil(alumnosFiltrados.length / PAGE_SIZE);
+  const paginatedData = alumnosFiltrados.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
   const inputCls =
     "w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all text-sm";
 
@@ -323,7 +419,7 @@ export default function Alumnos() {
                 </td>
               </tr>
             ) : (
-              alumnosFiltrados.map((d) => (
+              paginatedData.map((d) => (
                 <tr key={d.id_alumno} className="hover:bg-orange-50/40 transition-colors">
                   <td className="px-6 py-4 font-mono text-xs text-gray-400 tracking-wider">
                     {d.DNI}
@@ -373,13 +469,16 @@ export default function Alumnos() {
           </tbody>
         </table>
 
+        {/* ─── PAGINACIÓN ─── */}
         {!isLoading && alumnosFiltrados.length > 0 && (
-          <div className="px-6 py-3 border-t border-gray-50 bg-gray-50/50">
-            <p className="text-xs text-gray-400">
-              Mostrando <span className="font-semibold text-gray-600">{alumnosFiltrados.length}</span> alumno{alumnosFiltrados.length !== 1 ? "s" : ""}
-              {searchTerm && ` para "${searchTerm}"`}
-            </p>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={alumnosFiltrados.length}
+            pageSize={PAGE_SIZE}
+            searchTerm={searchTerm}
+          />
         )}
       </div>
 
@@ -430,7 +529,6 @@ export default function Alumnos() {
 
               {/* ── Mitad Izquierda: Formulario ── */}
               <div className="w-full md:w-1/2 flex flex-col overflow-hidden">
-                {/* Banda naranja */}
                 <div className="h-1.5 bg-orange-500 w-full" />
                 <div className="p-8 flex flex-col flex-1 bg-gray-50/60">
                   <div className="flex items-center gap-3 mb-6">
@@ -513,9 +611,7 @@ export default function Alumnos() {
                   </div>
                 </div>
 
-                {/* Visor de cámara */}
                 <div className="relative w-full aspect-square max-w-[260px] mb-5">
-                  {/* Fondo del visor */}
                   <div className="absolute inset-0 bg-gray-100 rounded-2xl overflow-hidden">
                     {modelsLoaded && (
                       <video
@@ -527,8 +623,6 @@ export default function Alumnos() {
                         style={{ transform: "scaleX(-1)" }}
                       />
                     )}
-
-                    {/* Silueta de persona cuando no hay descriptor */}
                     {!descriptor && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <svg viewBox="0 0 64 72" className="w-24 h-24 text-gray-300 fill-current">
@@ -537,16 +631,12 @@ export default function Alumnos() {
                         </svg>
                       </div>
                     )}
-
-                    {/* Spinner cargando modelos */}
                     {!modelsLoaded && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                         <Loader2 className="h-7 w-7 animate-spin text-orange-400" />
                         <span className="text-xs text-gray-400">Cargando IA...</span>
                       </div>
                     )}
-
-                    {/* Overlay verde al capturar */}
                     {descriptor && (
                       <div className="absolute inset-0 bg-green-500/20 backdrop-blur-[2px] flex items-center justify-center">
                         <div className="bg-green-500 text-white rounded-full p-3 shadow-lg">
@@ -556,15 +646,10 @@ export default function Alumnos() {
                     )}
                   </div>
 
-                  {/* Esquinas naranja tipo visor */}
                   {!descriptor && (<>
-                    {/* Top-left */}
                     <span className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-orange-500 rounded-tl-2xl pointer-events-none" />
-                    {/* Top-right */}
                     <span className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-orange-500 rounded-tr-2xl pointer-events-none" />
-                    {/* Bottom-left */}
                     <span className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-orange-500 rounded-bl-2xl pointer-events-none" />
-                    {/* Bottom-right */}
                     <span className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-orange-500 rounded-br-2xl pointer-events-none" />
                   </>)}
                 </div>

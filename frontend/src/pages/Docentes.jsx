@@ -4,7 +4,7 @@ import * as faceapi from "face-api.js";
 import {
   Plus, Users, X, Search, CheckCircle, AlertCircle,
   Loader2, Camera, Check, Clock, Trash2, AlertTriangle,
-  User, Save, 
+  User, Save, Edit2,
 } from "lucide-react";
 import { UsuariosService } from "../services/usuarios.service";
 import { HorariosPersonalService } from "../services/horarios-personal.service";
@@ -218,57 +218,58 @@ function DocenteCard({ docente, onEdit, onDelete }) {
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-orange-300 transition-all duration-200 overflow-hidden group">
       <div className="h-1.5 w-full bg-orange-500" />
 
-      <div className="p-5">
-        {/* Header: solo botones */}
-        <div className="flex items-start justify-end mb-4">
-          <div className="flex items-center gap-1.5">
+      <div className="p-4 flex flex-col gap-3">
+
+        {/* Fila 1: Nombre + botones */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-bold text-slate-800 text-base leading-tight truncate">
+            {docente.nombre} {docente.apellido}
+          </p>
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => onEdit(docente)}
-              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-orange-100 hover:text-orange-600 text-slate-400 flex items-center justify-center transition-colors"
+              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-orange-100 hover:text-orange-500 text-slate-400 flex items-center justify-center transition-colors"
               title="Editar"
             >
-              <User className="h-3.5 w-3.5" />
+              <Edit2 className="h-3 w-3" />
             </button>
             <button
               onClick={() => onDelete(docente)}
-              className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors"
+              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-50 hover:text-red-500 text-slate-400 flex items-center justify-center transition-colors"
               title="Eliminar"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3 w-3" />
             </button>
           </div>
         </div>
 
-        {/* Avatar + nombre */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-orange-500 flex items-center justify-center text-white text-base font-bold shrink-0 shadow-md shadow-orange-200">
+        {/* Fila 2: Avatar + email */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm shadow-orange-200">
             {initials}
           </div>
-          <div className="min-w-0">
-            <p className="font-bold text-slate-800 text-base leading-tight truncate">
-              {docente.nombre} {docente.apellido}
-            </p>
-            <p className="text-sm text-slate-400 truncate">{docente.email}</p>
-          </div>
+          <p className="text-xs text-slate-400 truncate">{docente.email}</p>
         </div>
 
-        {/* Horario */}
-        <div className="rounded-xl bg-orange-50 border border-orange-100 p-3">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Clock className="h-3.5 w-3.5 text-orange-400" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">Horario</span>
-          </div>
-          <p className="text-sm font-mono font-semibold text-slate-600">
-            {docente.horario
-              ? `${docente.horario.hora_entrada.slice(0, 5)}  →  ${docente.horario.hora_salida.slice(0, 5)}`
-              : <span className="text-slate-400 font-sans font-normal text-xs">Sin horario asignado</span>}
-          </p>
-        </div>
+        {/* Fila 3: Horario — todo en una línea, alineado a la izquierda */}
+<div className="rounded-xl bg-orange-50 border border-orange-100 px-4 py-3 flex items-center justify-start gap-3">
+  <Clock className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+  <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">Horario</span>
+  {docente.horario ? (
+    <span className="font-mono font-bold text-slate-700 text-sm">
+      {docente.horario.hora_entrada.slice(0, 5)}
+      <span className="mx-1.5 text-slate-400">-</span>
+      {docente.horario.hora_salida.slice(0, 5)}
+    </span>
+  ) : (
+    <span className="text-slate-400 text-xs">Sin horario</span>
+  )}
+</div>
+
       </div>
     </div>
   );
 }
-
 /* ── MODAL NUEVO DOCENTE ── */
 function NuevoModal({ onClose, onSaved }) {
   const [form, setForm] = useState(emptyForm);

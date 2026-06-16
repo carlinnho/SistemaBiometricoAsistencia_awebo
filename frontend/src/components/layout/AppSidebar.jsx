@@ -10,8 +10,9 @@ import {
   ScanFace,
   MonitorPlay,
   ClipboardList,
+  LogOut,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 const PADRE_ITEMS = [
@@ -57,7 +58,11 @@ function NavItem({ item }) {
                 : "bg-gray-100 group-hover:bg-orange-100"
             }`}
           >
-            <item.icon className={`h-3.5 w-3.5 ${isActive ? "text-white" : "text-gray-500 group-hover:text-orange-500"}`} />
+            <item.icon
+              className={`h-3.5 w-3.5 ${
+                isActive ? "text-white" : "text-gray-500 group-hover:text-orange-500"
+              }`}
+            />
           </span>
           <span>{item.title}</span>
           {isActive && (
@@ -85,29 +90,30 @@ function NavSection({ label, items }) {
 }
 
 export function AppSidebar({ isOpen }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const rol = user?.rol ?? "";
   const showAdmin = rol === "administrador";
   const showDocente = rol === "docente";
   const showPadre = rol === "padre";
 
-  // Iniciales para avatar de usuario
-  const initials = user
-    ? `${user.nombre?.[0] ?? ""}${user.apellido?.[0] ?? ""}`.toUpperCase()
-    : "?";
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <aside
       className={`
-        bg-white border-r border-gray-100 w-72 shrink-0 flex flex-col
+        bg-white border-r border-gray-100 w-72 shrink-0 flex flex-col h-screen sticky top-0
         transition-transform duration-300 shadow-sm
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        md:translate-x-0 md:static fixed inset-y-0 left-0 z-40
+        md:translate-x-0
       `}
     >
       {/* ─── LOGO ─── */}
-      <div className="h-16 flex items-center gap-3 px-5 border-b border-gray-100">
+      <div className="h-16 flex items-center gap-3 px-5 border-b border-gray-100 shrink-0">
         <div className="h-9 w-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0 shadow-md shadow-orange-200">
           <ShieldCheck className="h-5 w-5 text-white" />
         </div>
@@ -127,19 +133,25 @@ export function AppSidebar({ isOpen }) {
       </div>
 
       {/* ─── FOOTER DE USUARIO ─── */}
-      <div className="p-3 border-t border-gray-100">
-        <div className="flex items-center gap-3 px-2 py-2.5 rounded-xl bg-gray-50">
-          <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm shadow-orange-200">
-            {initials}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-gray-800 truncate">
-              {user?.nombre} {user?.apellido}
-            </p>
-            <p className="text-[10px] text-gray-400 capitalize truncate">{user?.rol}</p>
-          </div>
+      <div className="p-3 border-t border-gray-100 shrink-0">
+        {/* Info de usuario (sin avatar) */}
+        <div className="px-3 py-2 mb-2">
+          <p className="text-sm font-bold text-gray-800 truncate">
+            {user?.nombre} {user?.apellido}
+          </p>
+          <p className="text-[11px] text-gray-400 capitalize truncate mt-0.5">{user?.rol}</p>
         </div>
-        <p className="text-[10px] text-gray-300 text-center mt-2">© 2026 FaceAttend</p>
+
+        {/* Botón cerrar sesión */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2.5 px-3 py-2.5 mb-2 rounded-xl text-sm font-semibold text-red-600 bg-red-50 border border-red-200 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
+        >
+          <LogOut className="h-4 w-4" />
+          Cerrar Sesión
+        </button>
+
+        <p className="text-[10px] text-gray-300 text-center mt-1">© 2026 FaceAttend</p>
       </div>
     </aside>
   );
