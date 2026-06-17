@@ -106,7 +106,7 @@ export function AppSidebar({ isOpen }) {
   return (
     <aside
       className={`
-        bg-white border-r border-gray-100 w-72 shrink-0 flex flex-col h-screen sticky top-0
+        bg-white border-r border-gray-100 w-72 shrink-0 flex flex-col h-screen fixed md:sticky top-0 left-0 z-40
         transition-transform duration-300 shadow-sm
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
         md:translate-x-0

@@ -33,7 +33,7 @@ function Toast({ toast, onClose }) {
   const isError = toast.type === "error";
   return createPortal(
     <div
-      className={`fixed bottom-5 right-5 z-[200] flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
+      className={`fixed bottom-5 right-5 z-200 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
         isError
           ? "bg-red-50 border-red-200 text-red-800"
           : "bg-orange-50 border-orange-200 text-orange-800"
@@ -54,7 +54,14 @@ function Toast({ toast, onClose }) {
 }
 
 /* ─── PAGINATION ─── */
-function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSize, searchTerm }) {
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  totalItems,
+  pageSize,
+  searchTerm,
+}) {
   if (totalPages <= 1) return null;
 
   const from = (currentPage - 1) * pageSize + 1;
@@ -80,9 +87,10 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSiz
     <div className="relative px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
       <p className="text-xs text-gray-400">
         Mostrando{" "}
-        <span className="font-semibold text-gray-600">{from}–{to}</span>{" "}
-        de{" "}
-        <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
+        <span className="font-semibold text-gray-600">
+          {from}–{to}
+        </span>{" "}
+        de <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
         alumno{totalItems !== 1 ? "s" : ""}
         {searchTerm && ` para "${searchTerm}"`}
       </p>
@@ -188,7 +196,9 @@ export default function Alumnos() {
     }
   }, []);
 
-  useEffect(() => { cargarDatos(); }, [cargarDatos]);
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -215,11 +225,15 @@ export default function Alumnos() {
   }, [open]);
 
   // Resetear página al cambiar búsqueda
-  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const iniciarCamara = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+      });
       setStream(mediaStream);
       if (videoRef.current) videoRef.current.srcObject = mediaStream;
     } catch {
@@ -245,7 +259,10 @@ export default function Alumnos() {
         .withFaceLandmarks()
         .withFaceDescriptor();
       if (!detection) {
-        showToast("error", "No se detectó un rostro claro. Mira fijamente a la cámara.");
+        showToast(
+          "error",
+          "No se detectó un rostro claro. Mira fijamente a la cámara.",
+        );
         setDescriptor(null);
       } else {
         setDescriptor(Array.from(detection.descriptor));
@@ -262,7 +279,10 @@ export default function Alumnos() {
     if (!form.nombre || !form.DNI || !form.id_aula || !form.padre_id)
       return showToast("error", "Complete todos los campos académicos.");
     if (!isEditing && !descriptor)
-      return showToast("error", "Debe capturar el rostro del alumno antes de guardar.");
+      return showToast(
+        "error",
+        "Debe capturar el rostro del alumno antes de guardar.",
+      );
 
     const payload = {
       nombre: form.nombre,
@@ -344,7 +364,8 @@ export default function Alumnos() {
   const inputCls =
     "w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all text-sm";
 
-  const labelCls = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
+  const labelCls =
+    "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in">
@@ -357,12 +378,21 @@ export default function Alumnos() {
             <GraduationCap className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 leading-tight">Gestión de Alumnos</h1>
-            <p className="text-xs text-gray-400">Registro biométrico y académico de estudiantes.</p>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">
+              Gestión de Alumnos
+            </h1>
+            <p className="text-xs text-gray-400">
+              Registro biométrico y académico de estudiantes.
+            </p>
           </div>
         </div>
         <button
-          onClick={() => { setForm(emptyForm); setIsEditing(false); setEditingId(null); setOpen(true); }}
+          onClick={() => {
+            setForm(emptyForm);
+            setIsEditing(false);
+            setEditingId(null);
+            setOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 text-white text-sm font-semibold bg-orange-500 hover:bg-orange-600 rounded-xl shadow-md shadow-orange-200 transition-all active:scale-95"
         >
           <ScanFace className="h-4 w-4" /> Registrar Alumno
@@ -394,11 +424,21 @@ export default function Alumnos() {
         <table className="w-full text-sm text-left">
           <thead>
             <tr className="bg-gray-700">
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">DNI</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Nombre del Alumno</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Aula</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Biometría</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider text-center">Acciones</th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                DNI
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Nombre del Alumno
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Aula
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Biometría
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider text-center">
+                Acciones
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -415,20 +455,28 @@ export default function Alumnos() {
                   <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                     <GraduationCap className="h-6 w-6 text-gray-300" />
                   </div>
-                  <p className="text-sm font-medium text-gray-400">No se encontraron alumnos.</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    No se encontraron alumnos.
+                  </p>
                 </td>
               </tr>
             ) : (
               paginatedData.map((d) => (
-                <tr key={d.id_alumno} className="hover:bg-orange-50/40 transition-colors">
+                <tr
+                  key={d.id_alumno}
+                  className="hover:bg-orange-50/40 transition-colors"
+                >
                   <td className="px-6 py-4 font-mono text-xs text-gray-400 tracking-wider">
                     {d.DNI}
                   </td>
-                  <td className="px-6 py-4 font-bold text-gray-800">{d.nombre}</td>
+                  <td className="px-6 py-4 font-bold text-gray-800">
+                    {d.nombre}
+                  </td>
                   <td className="px-6 py-4">
                     {d.aula ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-lg text-xs font-semibold text-gray-600">
-                        {d.aula.grado} <span className="text-gray-300">·</span> Sec. {d.aula.seccion}
+                        {d.aula.grado} <span className="text-gray-300">·</span>{" "}
+                        Sec. {d.aula.seccion}
                       </span>
                     ) : (
                       <span className="text-gray-300">—</span>
@@ -485,18 +533,23 @@ export default function Alumnos() {
       {/* ─── MODAL CONFIRMAR ELIMINACIÓN ─── */}
       {alumnoAEliminar &&
         createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
               <div className="h-1.5 bg-red-500 w-full" />
               <div className="p-6 text-center">
                 <div className="mx-auto w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
                   <AlertTriangle className="h-7 w-7 text-red-500" />
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">¿Eliminar Alumno?</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">
+                  ¿Eliminar Alumno?
+                </h2>
                 <p className="text-sm text-gray-500 mb-6">
                   Estás a punto de eliminar a{" "}
-                  <strong className="text-gray-800">{alumnoAEliminar.nombre}</strong>. Se borrará su
-                  biometría y todo su historial de asistencia. Esta acción es irreversible.
+                  <strong className="text-gray-800">
+                    {alumnoAEliminar.nombre}
+                  </strong>
+                  . Se borrará su biometría y todo su historial de asistencia.
+                  Esta acción es irreversible.
                 </p>
                 <div className="flex gap-3">
                   <button
@@ -511,7 +564,11 @@ export default function Alumnos() {
                     disabled={isDeleting}
                     className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60 transition-colors"
                   >
-                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    {isDeleting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
                     Sí, eliminar
                   </button>
                 </div>
@@ -526,7 +583,6 @@ export default function Alumnos() {
         createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col md:flex-row">
-
               {/* ── Mitad Izquierda: Formulario ── */}
               <div className="w-full md:w-1/2 flex flex-col overflow-hidden">
                 <div className="h-1.5 bg-orange-500 w-full" />
@@ -536,7 +592,9 @@ export default function Alumnos() {
                       <GraduationCap className="h-4 w-4 text-orange-500" />
                     </div>
                     <h2 className="text-base font-bold text-gray-800">
-                      {isEditing ? "Editar Datos del Alumno" : "Datos del Alumno"}
+                      {isEditing
+                        ? "Editar Datos del Alumno"
+                        : "Datos del Alumno"}
                     </h2>
                   </div>
 
@@ -565,10 +623,14 @@ export default function Alumnos() {
                       <label className={labelCls}>Asignar Aula</label>
                       <select
                         value={form.id_aula}
-                        onChange={(e) => handleChange("id_aula", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("id_aula", e.target.value)
+                        }
                         className={inputCls}
                       >
-                        <option value="" disabled>Seleccione el aula...</option>
+                        <option value="" disabled>
+                          Seleccione el aula...
+                        </option>
                         {aulas.map((a) => (
                           <option key={a.id_aula} value={a.id_aula}>
                             {a.nombre} — {a.grado} "{a.seccion}"
@@ -577,13 +639,19 @@ export default function Alumnos() {
                       </select>
                     </div>
                     <div>
-                      <label className={labelCls}>Vincular Padre / Apoderado</label>
+                      <label className={labelCls}>
+                        Vincular Padre / Apoderado
+                      </label>
                       <select
                         value={form.padre_id}
-                        onChange={(e) => handleChange("padre_id", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("padre_id", e.target.value)
+                        }
                         className={inputCls}
                       >
-                        <option value="" disabled>Seleccione al apoderado...</option>
+                        <option value="" disabled>
+                          Seleccione al apoderado...
+                        </option>
                         {padres.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.nombre} {p.apellido}
@@ -605,7 +673,9 @@ export default function Alumnos() {
                     <h2 className="text-base font-bold text-gray-800">
                       Captura Facial
                       {isEditing && (
-                        <span className="ml-2 text-xs font-normal text-gray-400">(Opcional)</span>
+                        <span className="ml-2 text-xs font-normal text-gray-400">
+                          (Opcional)
+                        </span>
                       )}
                     </h2>
                   </div>
@@ -625,7 +695,10 @@ export default function Alumnos() {
                     )}
                     {!descriptor && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <svg viewBox="0 0 64 72" className="w-24 h-24 text-gray-300 fill-current">
+                        <svg
+                          viewBox="0 0 64 72"
+                          className="w-24 h-24 text-gray-300 fill-current"
+                        >
                           <circle cx="32" cy="20" r="13" />
                           <path d="M4 68c0-15.464 12.536-28 28-28s28 12.536 28 28" />
                         </svg>
@@ -634,7 +707,9 @@ export default function Alumnos() {
                     {!modelsLoaded && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                         <Loader2 className="h-7 w-7 animate-spin text-orange-400" />
-                        <span className="text-xs text-gray-400">Cargando IA...</span>
+                        <span className="text-xs text-gray-400">
+                          Cargando IA...
+                        </span>
                       </div>
                     )}
                     {descriptor && (
@@ -646,12 +721,14 @@ export default function Alumnos() {
                     )}
                   </div>
 
-                  {!descriptor && (<>
-                    <span className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-orange-500 rounded-tl-2xl pointer-events-none" />
-                    <span className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-orange-500 rounded-tr-2xl pointer-events-none" />
-                    <span className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-orange-500 rounded-bl-2xl pointer-events-none" />
-                    <span className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-orange-500 rounded-br-2xl pointer-events-none" />
-                  </>)}
+                  {!descriptor && (
+                    <>
+                      <span className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-orange-500 rounded-tl-2xl pointer-events-none" />
+                      <span className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-orange-500 rounded-tr-2xl pointer-events-none" />
+                      <span className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-orange-500 rounded-bl-2xl pointer-events-none" />
+                      <span className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-orange-500 rounded-br-2xl pointer-events-none" />
+                    </>
+                  )}
                 </div>
 
                 {descriptor ? (
@@ -675,7 +752,11 @@ export default function Alumnos() {
                     ) : (
                       <Camera className="h-4 w-4" />
                     )}
-                    {isScanning ? "Analizando rostro..." : isEditing ? "Actualizar Rostro" : "Escanear Rostro"}
+                    {isScanning
+                      ? "Analizando rostro..."
+                      : isEditing
+                        ? "Actualizar Rostro"
+                        : "Escanear Rostro"}
                   </button>
                 )}
 

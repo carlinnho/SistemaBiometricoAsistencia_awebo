@@ -29,7 +29,7 @@ function Toast({ toast, onClose }) {
   const isError = toast.type === "error";
   return createPortal(
     <div
-      className={`fixed bottom-5 right-5 z-[200] flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
+      className={`fixed bottom-5 right-5 z-200 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
         isError
           ? "bg-red-50 border-red-200 text-red-800"
           : "bg-orange-50 border-orange-200 text-orange-800"
@@ -57,7 +57,9 @@ function TimeBadge({ time, variant }) {
     salida: "bg-gray-100 text-gray-600 border-gray-200",
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[variant]}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${styles[variant]}`}
+    >
       {time}
     </span>
   );
@@ -72,14 +74,22 @@ function RolBadge({ rol }) {
   };
   const style = styles[rol] ?? "bg-gray-100 text-gray-600 border-gray-200";
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${style}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border capitalize ${style}`}
+    >
       {rol}
     </span>
   );
 }
 
 /* ─── PAGINATION ─── */
-function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSize }) {
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  totalItems,
+  pageSize,
+}) {
   if (totalPages <= 1) return null;
 
   const from = (currentPage - 1) * pageSize + 1;
@@ -105,9 +115,10 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSiz
     <div className="relative px-6 py-3 border-t border-gray-100 bg-gray-50/50 flex items-center justify-between">
       <p className="text-xs text-gray-400">
         Mostrando{" "}
-        <span className="font-semibold text-gray-600">{from}–{to}</span>{" "}
-        de{" "}
-        <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
+        <span className="font-semibold text-gray-600">
+          {from}–{to}
+        </span>{" "}
+        de <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
         horario{totalItems !== 1 ? "s" : ""}
       </p>
 
@@ -197,7 +208,9 @@ export default function HorariosPersonal() {
     }
   }, []);
 
-  useEffect(() => { cargarDatos(); }, [cargarDatos]);
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
 
   // Datos paginados
   const totalPages = Math.ceil(data.length / PAGE_SIZE);
@@ -209,7 +222,12 @@ export default function HorariosPersonal() {
   const handleChange = (field, value) => setForm({ ...form, [field]: value });
 
   const handleSave = async () => {
-    if (!form.id_usuario || !form.hora_entrada || !form.Hora_limite_puntual || !form.hora_salida)
+    if (
+      !form.id_usuario ||
+      !form.hora_entrada ||
+      !form.Hora_limite_puntual ||
+      !form.hora_salida
+    )
       return showToast("error", "Complete todos los campos obligatorios.");
 
     const payload = { ...form, id_usuario: Number(form.id_usuario) };
@@ -217,7 +235,10 @@ export default function HorariosPersonal() {
     try {
       if (isEditing) await HorariosPersonalService.update(editingId, payload);
       else await HorariosPersonalService.create(payload);
-      showToast("success", `Horario ${isEditing ? "actualizado" : "registrado"} correctamente.`);
+      showToast(
+        "success",
+        `Horario ${isEditing ? "actualizado" : "registrado"} correctamente.`,
+      );
       cerrarModal();
       await cargarDatos();
     } catch (err) {
@@ -249,7 +270,8 @@ export default function HorariosPersonal() {
   const inputCls =
     "w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all text-sm";
 
-  const labelCls = "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
+  const labelCls =
+    "block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-4 animate-fade-in">
@@ -262,8 +284,12 @@ export default function HorariosPersonal() {
             <Clock className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 leading-tight">Horarios del Personal</h1>
-            <p className="text-xs text-gray-400">Configura los horarios de docentes y administradores.</p>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">
+              Horarios del Personal
+            </h1>
+            <p className="text-xs text-gray-400">
+              Configura los horarios de docentes y administradores.
+            </p>
           </div>
         </div>
         <button
@@ -279,12 +305,24 @@ export default function HorariosPersonal() {
         <table className="w-full text-sm text-left">
           <thead>
             <tr className="bg-gray-700">
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Personal</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Rol</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Entrada</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Límite Puntual</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">Salida</th>
-              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider text-center">Acciones</th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Personal
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Rol
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Entrada
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Límite Puntual
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider">
+                Salida
+              </th>
+              <th className="px-6 py-3.5 text-xs font-bold text-gray-300 uppercase tracking-wider text-center">
+                Acciones
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -301,12 +339,17 @@ export default function HorariosPersonal() {
                   <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
                     <Clock className="h-6 w-6 text-gray-300" />
                   </div>
-                  <p className="text-sm font-medium text-gray-400">No hay horarios registrados.</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    No hay horarios registrados.
+                  </p>
                 </td>
               </tr>
             ) : (
               paginatedData.map((d) => (
-                <tr key={d.id_horario_usuario} className="hover:bg-orange-50/40 transition-colors">
+                <tr
+                  key={d.id_horario_usuario}
+                  className="hover:bg-orange-50/40 transition-colors"
+                >
                   <td className="px-6 py-4 font-bold text-gray-800">
                     {d.usuario?.nombre} {d.usuario?.apellido}
                   </td>
@@ -365,7 +408,9 @@ export default function HorariosPersonal() {
                       <Clock className="h-4 w-4 text-orange-500" />
                     </div>
                     <h2 className="text-lg font-bold text-gray-900">
-                      {isEditing ? "Editar Horario" : "Nuevo Horario para Personal"}
+                      {isEditing
+                        ? "Editar Horario"
+                        : "Nuevo Horario para Personal"}
                     </h2>
                   </div>
                   <button
@@ -381,7 +426,9 @@ export default function HorariosPersonal() {
                     <label className={labelCls}>Docente o Administrador</label>
                     <select
                       value={form.id_usuario}
-                      onChange={(e) => handleChange("id_usuario", e.target.value)}
+                      onChange={(e) =>
+                        handleChange("id_usuario", e.target.value)
+                      }
                       className={inputCls}
                     >
                       <option value="">Seleccionar personal...</option>
@@ -399,7 +446,9 @@ export default function HorariosPersonal() {
                       <input
                         type="time"
                         value={form.hora_entrada}
-                        onChange={(e) => handleChange("hora_entrada", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("hora_entrada", e.target.value)
+                        }
                         className={inputCls}
                       />
                     </div>
@@ -408,7 +457,9 @@ export default function HorariosPersonal() {
                       <input
                         type="time"
                         value={form.Hora_limite_puntual}
-                        onChange={(e) => handleChange("Hora_limite_puntual", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("Hora_limite_puntual", e.target.value)
+                        }
                         className={inputCls}
                       />
                     </div>
@@ -417,7 +468,9 @@ export default function HorariosPersonal() {
                       <input
                         type="time"
                         value={form.hora_salida}
-                        onChange={(e) => handleChange("hora_salida", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("hora_salida", e.target.value)
+                        }
                         className={inputCls}
                       />
                     </div>

@@ -29,7 +29,7 @@ function Toast({ toast, onClose }) {
   const isError = toast.type === "error";
   return createPortal(
     <div
-      className={`fixed bottom-5 right-5 z-[200] flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
+      className={`fixed bottom-5 right-5 z-200 flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm max-w-sm border ${
         isError
           ? "bg-red-50 border-red-200 text-red-800"
           : "bg-orange-50 border-orange-200 text-orange-800"
@@ -66,7 +66,13 @@ function TimeBadge({ time, variant }) {
 }
 
 /* ─── PAGINATION ─── */
-function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSize }) {
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  totalItems,
+  pageSize,
+}) {
   if (totalPages <= 1) return null;
 
   const from = (currentPage - 1) * pageSize + 1;
@@ -96,8 +102,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, pageSiz
         <span className="font-semibold text-gray-600">
           {from}–{to}
         </span>{" "}
-        de{" "}
-        <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
+        de <span className="font-semibold text-gray-600">{totalItems}</span>{" "}
         horario{totalItems !== 1 ? "s" : ""}
       </p>
 
