@@ -759,11 +759,14 @@ export default function Docentes() {
     }
   };
 
+  // ── CORRECCIÓN: buscar por nombre completo concatenado ──
   const docentesFiltrados = useMemo(() => {
     return data.filter((d) => {
       if (d.activo !== tabEstado) return false;
       const term = searchTerm.toLowerCase();
+      const fullName = `${d.nombre} ${d.apellido}`.toLowerCase();
       return (
+        fullName.includes(term) ||
         d.nombre.toLowerCase().includes(term) ||
         d.apellido.toLowerCase().includes(term)
       );
