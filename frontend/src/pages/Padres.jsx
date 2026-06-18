@@ -277,17 +277,24 @@ export default function Padres() {
     }
   };
 
+  // ✅ FIX: setPage(1) removido del useMemo — los side effects no van aquí
   const padresFiltrados = useMemo(() => {
-    setPage(1);
     return data.filter((d) => {
       if (d.activo !== tabEstado) return false;
       const term = searchTerm.toLowerCase();
+      const fullName = `${d.nombre} ${d.apellido}`.toLowerCase();
       return (
         d.nombre.toLowerCase().includes(term) ||
-        d.apellido.toLowerCase().includes(term)
+        d.apellido.toLowerCase().includes(term) ||
+        fullName.includes(term)
       );
     });
   }, [data, searchTerm, tabEstado]);
+
+  // ✅ FIX: reset de página en useEffect separado, se ejecuta después del render
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, tabEstado]);
 
   const totalPages = Math.max(
     1,
